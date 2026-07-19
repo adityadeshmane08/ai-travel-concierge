@@ -49,9 +49,8 @@ web_context = "\n\n".join(
     [r["content"] for r in web_results["results"]]
 )
 
-    
 
-    prompt = f"""
+prompt = f"""
 You are an AI Travel Concierge.
 
 Use BOTH sources.
