@@ -3,8 +3,13 @@ langchain
 langchain-community
 langchain-huggingface
 langchain-google-genai
+langchain-groq==0.3.7
 chromadb
 pypdf
-google-genai
+google-generativeai
 python-dotenv
-langchain-groq==0.3.7
+sentence-transformers
+transformers
+torch
+faiss-cpu
+huggingface-hub
