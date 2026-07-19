@@ -7,3 +7,4 @@ chromadb
 pypdf
 google-genai
 python-dotenv
+langchain-groq==0.3.7
