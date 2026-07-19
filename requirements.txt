@@ -1,6 +1,7 @@
 streamlit
 langchain
 langchain-community
+langchain-tavily
 langchain-huggingface
 langchain-google-genai
 langchain-groq==0.3.7
