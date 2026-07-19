@@ -37,7 +37,7 @@ if question:
     docs = retriever.invoke(question)
 
 pdf_context = "\n\n".join(
-    [doc.page_content for doc in docs]
+    doc.page_content for doc in docs
 )
 
 web_results = tavily.search(
