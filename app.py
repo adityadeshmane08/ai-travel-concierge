@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 from dotenv import load_dotenv
+from tavily import TavilyClient
 
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -9,8 +10,7 @@ from langchain_groq import ChatGroq
 load_dotenv()
 
 groq_api_key = os.getenv("GROQ_API_KEY")
-
-
+tavily = TavilyClient(api_key=st.secrets["TAVILY_API_KEY"])
 embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
@@ -36,20 +36,37 @@ if question:
 
     docs = retriever.invoke(question)
 
-    context = "\n\n".join(
-        [doc.page_content for doc in docs]
-    )
+pdf_context = "\n\n".join(
+    [doc.page_content for doc in docs]
+)
+
+web_results = tavily.search(
+    query=question,
+    max_results=3
+)
+
+web_context = "\n\n".join(
+    [r["content"] for r in web_results["results"]]
+)
+
+    
 
     prompt = f"""
-You are an AI Travel Guide.
+You are an AI Travel Concierge.
 
-Answer only from the provided context.
+Use BOTH sources.
 
-Context:
-{context}
+PDF Information:
+{pdf_context}
+
+Latest Web Information:
+{web_context}
 
 Question:
 {question}
+
+If the answer is available in the PDF, prefer it.
+Otherwise use the web information.
 """
 
     response = llm.invoke(prompt)
