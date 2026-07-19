@@ -38,18 +38,17 @@ if question:
     docs = retriever.invoke(question)
 
     pdf_context = "\n\n".join(
-    doc.page_content for doc in docs
-)
+        doc.page_content for doc in docs
+    )
 
     web_results = tavily.search(
-    query=question,
-    max_results=3
-)
+        query=question,
+        max_results=3
+    )
 
     web_context = "\n\n".join(
-    [r["content"] for r in web_results["results"]]
-)
-
+        r["content"] for r in web_results["results"]
+    )
 
     prompt = f"""
 You are an AI Travel Concierge.
@@ -68,11 +67,9 @@ Question:
 If the answer is available in the PDF, prefer it.
 Otherwise use the web information.
 """
-    
-    
 
-   response = llm.invoke(prompt)
-   st.write(response.content)
+    response = llm.invoke(prompt)
+    st.write(response.content)
 
 import streamlit as st
 from datetime import date
