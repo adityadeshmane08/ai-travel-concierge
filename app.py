@@ -32,25 +32,26 @@ question = st.text_input(
     "Ask anything about travelling in India"
 )
 
+
 if question:
 
     docs = retriever.invoke(question)
 
-pdf_context = "\n\n".join(
+    pdf_context = "\n\n".join(
     doc.page_content for doc in docs
 )
 
-web_results = tavily.search(
+    web_results = tavily.search(
     query=question,
     max_results=3
 )
 
-web_context = "\n\n".join(
+    web_context = "\n\n".join(
     [r["content"] for r in web_results["results"]]
 )
 
 
-prompt = f"""
+    prompt = f"""
 You are an AI Travel Concierge.
 
 Use BOTH sources.
