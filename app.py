@@ -2,7 +2,7 @@ import streamlit as st
 import os
 from dotenv import load_dotenv
 from tavily import TavilyClient
-
+from agent import create_agent
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
@@ -21,8 +21,7 @@ db = Chroma(
 )
 
 retriever = db.as_retriever(search_kwargs={"k": 3})
-
-
+agent=create_agent(retriever)
 
 llm = ChatGroq(
     model="openai/gpt-oss-120b",
@@ -34,45 +33,10 @@ question = st.text_input(
 
 
 if question:
-
-    docs = retriever.invoke(question)
-
-    pdf_context = "\n\n".join(
-        doc.page_content for doc in docs
-    )
-
-    web_results = tavily.search(
-        query=question,
-        max_results=3
-    )
-
-    web_context = "\n\n".join(
-        r["content"] for r in web_results["results"]
-    )
-
-    prompt = f"""
-You are an AI Travel Concierge.
-
-Use BOTH sources.
-
-PDF Information:
-{pdf_context}
-
-Latest Web Information:
-{web_context}
-
-Question:
-{question}
-
-If the answer is available in the PDF, prefer it.
-Otherwise use the web information.
-"""
-
-    response = llm.invoke(prompt)
-    st.write(response.content)
+    response=agent.run(question)
+    st.write(response)
 
 from datetime import date
-
 # ----------------------------
 # Page Configuration
 # ----------------------------
