@@ -16,10 +16,11 @@ def create_agent(retriever):
     web_tool = create_web_tool(st.secrets["TAVILY_API_KEY"])
 
     agent = initialize_agent(
-        tools=[pdf_tool, web_tool],
-        llm=llm,
-        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-        verbose=True
-    )
+    tools=[pdf_tool, web_tool],
+    llm=llm,
+    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+    verbose=True,
+    handle_parsing_errors=True
+)
 
     return agent
