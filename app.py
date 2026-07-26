@@ -2,7 +2,6 @@ import streamlit as st
 import os
 from dotenv import load_dotenv
 from tavily import TavilyClient
-from agent import create_agent
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
@@ -21,7 +20,6 @@ db = Chroma(
 )
 
 retriever = db.as_retriever(search_kwargs={"k": 3})
-agent=create_agent(retriever)
 
 llm = ChatGroq(
     model="openai/gpt-oss-120b",
@@ -33,8 +31,8 @@ question = st.text_input(
 
 
 if question:
-    response=agent.run(question)
-    st.write(response)
+    response=llm.invoke(prompt)
+    st.write(response.content)
 
 from datetime import date
 # ----------------------------
