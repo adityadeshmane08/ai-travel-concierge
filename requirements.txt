@@ -15,3 +15,5 @@ torch
 faiss-cpu
 huggingface-hub
 tavily-python
+langgraph
+langchain-core
