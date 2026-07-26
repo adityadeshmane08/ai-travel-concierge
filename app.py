@@ -1,14 +1,14 @@
 import streamlit as st
 import os
 from dotenv import load_dotenv
+from agent import create_agent
 from tavily import TavilyClient
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_groq import ChatGroq
+
 
 load_dotenv()
 
-groq_api_key = os.getenv("GROQ_API_KEY")
 tavily = TavilyClient(api_key=st.secrets["TAVILY_API_KEY"])
 embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2"
@@ -20,19 +20,15 @@ db = Chroma(
 )
 
 retriever = db.as_retriever(search_kwargs={"k": 3})
+agent = create_agent(retriever)
 
-llm = ChatGroq(
-    model="openai/gpt-oss-120b",
-    api_key=groq_api_key
-)
 question = st.text_input(
     "Ask anything about travelling in India"
 )
 
-
 if question:
-    response=llm.invoke(prompt)
-    st.write(response.content)
+    response = agent.invoke(question)
+    st.write(response["output"])
 
 from datetime import date
 # ----------------------------
