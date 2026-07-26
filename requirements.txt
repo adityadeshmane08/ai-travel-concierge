@@ -1,13 +1,12 @@
 streamlit
-langchain
-langchain-community
-langchain-tavily
-langchain-huggingface
-langchain-google-genai
+langchain==0.3.27
+langchain-core==0.3.75
+langchain-community==0.3.27
+langchain-huggingface==0.3.1
 langchain-groq==0.3.7
+langchain-tavily==0.2.11
 chromadb
 pypdf
-google-generativeai
 python-dotenv
 sentence-transformers
 transformers
@@ -15,5 +14,3 @@ torch
 faiss-cpu
 huggingface-hub
 tavily-python
-langgraph
-langchain-core
