@@ -71,7 +71,6 @@ Otherwise use the web information.
     response = llm.invoke(prompt)
     st.write(response.content)
 
-import streamlit as st
 from datetime import date
 
 # ----------------------------
