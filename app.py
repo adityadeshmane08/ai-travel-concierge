@@ -5,7 +5,8 @@ from agent import create_agent
 from tavily import TavilyClient
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
-
+from langchain_community.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 load_dotenv()
 
@@ -14,9 +15,19 @@ embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
-db = Chroma(
-    persist_directory="chroma_db",
-    embedding_function=embeddings
+loader = PyPDFLoader("Travel-guide-for-India.pdf")
+documents = loader.load()
+
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000,
+    chunk_overlap=200
+)
+
+docs = text_splitter.split_documents(documents)
+
+db = Chroma.from_documents(
+    documents=docs,
+    embedding=embeddings
 )
 
 retriever = db.as_retriever(search_kwargs={"k": 3})
