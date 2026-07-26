@@ -4,7 +4,7 @@ langchain-community==0.2.19
 langchain-core==0.2.43
 langchain-huggingface==0.0.3
 langchain-groq==0.1.10
-chromadb
+chromadb==0.5.5
 pypdf
 python-dotenv
 sentence-transformers
