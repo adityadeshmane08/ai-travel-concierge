@@ -299,7 +299,86 @@ agent = get_agent()
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []  # [{"role": "user"/"assistant", "content": str}, ...]
 
+def extract_flight_request(text: str, history: list[dict]):
+    """
+    Extract origin, destination and departure date/month from the current
+    message plus previous chat messages.
+    """
 
+    combined = "\n".join(
+        m["content"] for m in history
+        if isinstance(m, dict) and m.get("content")
+    )
+
+    combined += "\n" + text
+
+    # Route: "from Pune to Mumbai", "Pune to Mumbai"
+    route = re.search(
+        r"(?:from\s+)?([A-Za-z][A-Za-z .'-]{1,40}?)\s+to\s+([A-Za-z][A-Za-z .'-]{1,40}?)(?=\s+(?:in|on|for|this|next|at|$)|[,.!?]|$)",
+        combined,
+        re.IGNORECASE,
+    )
+
+    origin = None
+    destination = None
+
+    if route:
+        origin = route.group(1).strip()
+        destination = route.group(2).strip()
+
+    # Exact date: 6 September 2026 / 6th September 2026
+    date_match = re.search(
+        r"\b(\d{1,2})(?:st|nd|rd|th)?\s+"
+        r"(January|February|March|April|May|June|July|August|September|October|November|December)"
+        r"\s+(\d{4})\b",
+        combined,
+        re.IGNORECASE,
+    )
+
+    departure_date = None
+
+    if date_match:
+        day, month, year = date_match.groups()
+        dt = datetime.strptime(
+            f"{day} {month} {year}",
+            "%d %B %Y"
+        )
+        departure_date = dt.strftime("%Y-%m-%d")
+
+    # Numeric date: 06/09/2026 or 06-09-2026
+    if not departure_date:
+        numeric_match = re.search(
+            r"\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b",
+            combined,
+        )
+
+        if numeric_match:
+            day, month, year = numeric_match.groups()
+            dt = datetime(
+                int(year),
+                int(month),
+                int(day),
+            )
+            departure_date = dt.strftime("%Y-%m-%d")
+
+    # Month only: September 2026
+    if not departure_date:
+        month_match = re.search(
+            r"\b(January|February|March|April|May|June|July|August|September|October|November|December)"
+            r"\s+(\d{4})\b",
+            combined,
+            re.IGNORECASE,
+        )
+
+        if month_match:
+            month, year = month_match.groups()
+            dt = datetime.strptime(
+                f"1 {month} {year}",
+                "%d %B %Y",
+            )
+            departure_date = dt.strftime("%Y-%m")
+
+    return origin, destination, departure_date
 def run_agent(prompt_text: str, memory_context: bool = True) -> tuple[str, dict]:
     """
     Invoke the agent, optionally prepending recent chat turns as context
@@ -321,7 +400,112 @@ def run_agent(prompt_text: str, memory_context: bool = True) -> tuple[str, dict]
         )
     else:
         full_prompt = prompt_text
+    # ---------------------------------------------------------
+    # DIRECT FLIGHT HANDLING
+    # ---------------------------------------------------------
+    flight_keywords = [
+        "flight",
+        "flights",
+        "airfare",
+        "air fare",
+        "flight cost",
+        "flight price",
+        "ticket price",
+        "air ticket",
+    ]
 
+history = st.session_state.chat_history[:-1]
+
+previous_text = "\n".join(
+    m["content"]
+    for m in history
+    if m.get("content")
+)
+
+is_flight_request = (
+    any(
+        keyword in prompt_text.lower()
+        for keyword in flight_keywords
+    )
+    or (
+        any(
+            keyword in previous_text.lower()
+            for keyword in flight_keywords
+        )
+        and (
+            re.search(r"\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\b", prompt_text, re.I)
+            or re.search(r"\b\d{1,2}(?:st|nd|rd|th)?\b", prompt_text, re.I)
+            or re.search(r"\b\d{1,2}[/-]\d{1,2}[/-]\d{4}\b", prompt_text)
+        )
+    )
+)
+
+    if is_flight_request:
+        history = st.session_state.chat_history[:-1]
+
+        origin, destination, departure_date = extract_flight_request(
+            prompt_text,
+            history,
+        )
+
+        if not origin or not destination:
+            answer = (
+                "Sure! What are your departure and destination cities? "
+                "For example: Pune to Mumbai."
+            )
+            return answer, {
+                "type": "flight_clarification",
+                "origin": origin,
+                "destination": destination,
+                "departure_date": departure_date,
+            }
+
+        if not departure_date:
+            answer = (
+                f"Sure! What date or month would you like to fly "
+                f"from {origin} to {destination}?"
+            )
+            return answer, {
+                "type": "flight_clarification",
+                "origin": origin,
+                "destination": destination,
+            }
+
+        try:
+            offers = search_flight_data(
+                origin=origin,
+                destination=destination,
+                departure_date=departure_date,
+                token=st.secrets["TRAVELPAYOUTS_TOKEN"],
+            )
+
+            answer = format_flight_results(offers)
+
+            if not offers:
+                answer = (
+                    f"I couldn't find cached flight price data for "
+                    f"{origin} → {destination} on {departure_date}.\n\n"
+                    "The flight database uses cached prices, so this does "
+                    "not necessarily mean flights are unavailable."
+                )
+
+            return answer, {
+                "type": "flight_search",
+                "origin": origin,
+                "destination": destination,
+                "departure_date": departure_date,
+                "offers": offers,
+            }
+
+        except Exception as exc:
+            return (
+                f"I couldn't search flights from {origin} to "
+                f"{destination} right now: {exc}",
+                {
+                    "type": "flight_error",
+                    "error": str(exc),
+                },
+            )
     try:
         response = agent.invoke(full_prompt)
         answer = (response.get("output") or "").strip()
