@@ -1,8 +1,7 @@
 import streamlit as st
-from datetime import date
+from datetime import date, datetime
 from dotenv import load_dotenv
 import re
-from datetime import datetime
 
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -13,8 +12,10 @@ from agent import create_agent
 from tools import search_flight_data, format_flight_results
 import db
 
+
 load_dotenv()
 db.init_db()
+
 
 # ----------------------------
 # Page Configuration
@@ -22,11 +23,12 @@ db.init_db()
 st.set_page_config(
     page_title="AI Travel Concierge",
     page_icon="🛰️",
-    layout="wide"
+    layout="wide",
 )
 
+
 # ----------------------------
-# Theme: deep-space mission-control aesthetic
+# Theme
 # ----------------------------
 THEME_CSS = """
 <style>
@@ -46,22 +48,43 @@ THEME_CSS = """
 }
 
 html, body, .stApp {
-    background: radial-gradient(ellipse 80% 50% at 20% -10%, rgba(34,211,238,0.10), transparent),
-                radial-gradient(ellipse 60% 40% at 90% 10%, rgba(167,139,250,0.10), transparent),
-                var(--bg-void) !important;
+    background:
+        radial-gradient(
+            ellipse 80% 50% at 20% -10%,
+            rgba(34,211,238,0.10),
+            transparent
+        ),
+        radial-gradient(
+            ellipse 60% 40% at 90% 10%,
+            rgba(167,139,250,0.10),
+            transparent
+        ),
+        var(--bg-void) !important;
+
     color: var(--text-primary);
     font-family: 'Inter', sans-serif;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    .stApp { animation: bgshift 30s ease-in-out infinite alternate; }
+    .stApp {
+        animation: bgshift 30s ease-in-out infinite alternate;
+    }
+
     @keyframes bgshift {
-        0% { background-position: 0% 0%, 100% 0%, 0 0; }
-        100% { background-position: 5% 5%, 95% -5%, 0 0; }
+        0% {
+            background-position: 0% 0%, 100% 0%, 0 0;
+        }
+
+        100% {
+            background-position: 5% 5%, 95% -5%, 0 0;
+        }
     }
 }
 
-h1, h2, h3 { font-family: 'Space Grotesk', sans-serif !important; letter-spacing: -0.01em; }
+h1, h2, h3 {
+    font-family: 'Space Grotesk', sans-serif !important;
+    letter-spacing: -0.01em;
+}
 
 .eyebrow {
     font-family: 'JetBrains Mono', monospace;
@@ -78,7 +101,12 @@ h1, h2, h3 { font-family: 'Space Grotesk', sans-serif !important; letter-spacing
     font-weight: 700;
     font-size: 2.6rem;
     line-height: 1.1;
-    background: linear-gradient(90deg, #ffffff 0%, var(--accent-cyan) 55%, var(--accent-violet) 100%);
+    background: linear-gradient(
+        90deg,
+        #ffffff 0%,
+        var(--accent-cyan) 55%,
+        var(--accent-violet) 100%
+    );
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -94,21 +122,35 @@ h1, h2, h3 { font-family: 'Space Grotesk', sans-serif !important; letter-spacing
 .hud-line {
     height: 1px;
     margin: 1.4rem 0 1.6rem 0;
-    background: linear-gradient(90deg, var(--accent-cyan), transparent 70%);
+    background: linear-gradient(
+        90deg,
+        var(--accent-cyan),
+        transparent 70%
+    );
     opacity: 0.5;
 }
 
 /* Buttons */
 .stButton > button {
-    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-violet));
+    background: linear-gradient(
+        90deg,
+        var(--accent-cyan),
+        var(--accent-violet)
+    );
+
     color: #08101f;
     font-weight: 600;
     border: none;
     border-radius: 10px;
     padding: 0.6rem 1rem;
+
     box-shadow: 0 0 18px rgba(34, 211, 238, 0.35);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
 }
+
 .stButton > button:hover {
     transform: translateY(-1px);
     box-shadow: 0 0 26px rgba(167, 139, 250, 0.5);
@@ -146,7 +188,12 @@ textarea {
 
 /* Sidebar */
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0d1424, #0a0e17) !important;
+    background: linear-gradient(
+        180deg,
+        #0d1424,
+        #0a0e17
+    ) !important;
+
     border-right: 1px solid var(--border-glow);
 }
 
@@ -173,7 +220,7 @@ textarea {
     backdrop-filter: blur(6px);
 }
 
-/* Glass panel wrapper (used around the trip planner form) */
+/* Glass panel */
 .glass-panel {
     background: var(--bg-panel);
     border: 1px solid var(--border-glow);
@@ -186,32 +233,57 @@ textarea {
 /* Boarding-pass itinerary card */
 .boarding-pass {
     position: relative;
-    background: linear-gradient(160deg, rgba(19,27,46,0.9), rgba(10,14,23,0.9));
+    background: linear-gradient(
+        160deg,
+        rgba(19,27,46,0.9),
+        rgba(10,14,23,0.9)
+    );
+
     border: 1px solid var(--accent-cyan);
     border-radius: 16px;
     padding: 1.6rem 1.8rem;
     margin: 1rem 0 1.4rem 0;
-    box-shadow: 0 0 30px rgba(34, 211, 238, 0.18), inset 0 0 40px rgba(167,139,250,0.05);
+
+    box-shadow:
+        0 0 30px rgba(34, 211, 238, 0.18),
+        inset 0 0 40px rgba(167,139,250,0.05);
+
     overflow: hidden;
 }
+
 .boarding-pass::before {
     content: "";
     position: absolute;
-    top: -10px; left: 38px;
-    width: 20px; height: 20px;
+
+    top: -10px;
+    left: 38px;
+
+    width: 20px;
+    height: 20px;
+
     background: var(--bg-void);
     border-radius: 50%;
+
     box-shadow: 0 0 0 1px var(--accent-cyan);
 }
+
 .boarding-pass::after {
     content: "";
+
     position: absolute;
-    bottom: -10px; left: 38px;
-    width: 20px; height: 20px;
+
+    bottom: -10px;
+    left: 38px;
+
+    width: 20px;
+    height: 20px;
+
     background: var(--bg-void);
     border-radius: 50%;
+
     box-shadow: 0 0 0 1px var(--accent-cyan);
 }
+
 .bp-topline {
     display: flex;
     justify-content: space-between;
@@ -220,32 +292,46 @@ textarea {
     gap: 0.5rem;
     margin-bottom: 0.8rem;
 }
+
 .bp-eyebrow {
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.72rem;
     letter-spacing: 0.18em;
     color: var(--accent-amber);
 }
+
 .bp-route {
     font-family: 'JetBrains Mono', monospace;
     font-size: 1.1rem;
     font-weight: 600;
     color: var(--accent-cyan);
 }
+
 .bp-divider {
     border-top: 1px dashed rgba(139, 148, 172, 0.4);
     margin: 0.6rem 0 1rem 0;
 }
-.bp-content { color: var(--text-primary); line-height: 1.55; }
-.bp-content strong { color: var(--accent-cyan); }
 
-/* Mission log (saved trips) items */
+.bp-content {
+    color: var(--text-primary);
+    line-height: 1.55;
+}
+
+.bp-content strong {
+    color: var(--accent-cyan);
+}
+
 .log-item {
     border-left: 2px solid var(--accent-cyan);
     padding: 0.35rem 0 0.35rem 0.7rem;
     margin-bottom: 0.4rem;
 }
-.log-item .log-route { color: var(--accent-cyan); font-weight: 600; }
+
+.log-item .log-route {
+    color: var(--accent-cyan);
+    font-weight: 600;
+}
+
 .log-item .log-meta {
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.72rem;
@@ -254,25 +340,28 @@ textarea {
 
 .lang-badge {
     display: inline-block;
+
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.72rem;
+
     color: var(--accent-violet);
+
     border: 1px solid var(--accent-violet);
     border-radius: 999px;
+
     padding: 0.15rem 0.7rem;
     margin-bottom: 0.6rem;
 }
 </style>
 """
+
 st.markdown(THEME_CSS, unsafe_allow_html=True)
 
 
-# ----------------------------
-# Cached setup: build the RAG index ONCE (shared, stateless - safe to
-# cache globally). The agent itself is also cheap to rebuild, but we
-# cache it too since it doesn't hold per-user state - conversation
-# history is tracked separately in st.session_state below.
-# ----------------------------
+# ============================================================
+# RAG + AGENT
+# ============================================================
+
 @st.cache_resource(show_spinner="Calibrating knowledge base...")
 def get_agent():
     embeddings = HuggingFaceEmbeddings(
@@ -284,37 +373,77 @@ def get_agent():
 
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
-        chunk_overlap=200
+        chunk_overlap=200,
     )
+
     docs = text_splitter.split_documents(documents)
 
-    db_store = Chroma.from_documents(documents=docs, embedding=embeddings)
-    retriever = db_store.as_retriever(search_kwargs={"k": 3})
+    db_store = Chroma.from_documents(
+        documents=docs,
+        embedding=embeddings,
+    )
+
+    retriever = db_store.as_retriever(
+        search_kwargs={"k": 3}
+    )
 
     return create_agent(retriever)
 
 
 agent = get_agent()
 
+
+# ============================================================
+# CHAT HISTORY
+# ============================================================
+
 if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []  # [{"role": "user"/"assistant", "content": str}, ...]
+    st.session_state.chat_history = []
 
-def extract_flight_request(text: str, history: list[dict]):
+
+# ============================================================
+# FLIGHT REQUEST EXTRACTION
+# ============================================================
+
+def extract_flight_request(
+    text: str,
+    history: list[dict],
+):
     """
-    Extract origin, destination and departure date/month from the current
-    message plus previous chat messages.
+    Extract:
+
+    origin
+    destination
+    departure date/month
+
+    from the current message plus previous conversation.
     """
 
-    combined = "\n".join(
-        m["content"] for m in history
-        if isinstance(m, dict) and m.get("content")
-    )
+    combined_parts = []
 
-    combined += "\n" + text
+    for message in history:
+        if isinstance(message, dict) and message.get("content"):
+            combined_parts.append(message["content"])
 
-    # Route: "from Pune to Mumbai", "Pune to Mumbai"
-    route = re.search(
-        r"(?:from\s+)?([A-Za-z][A-Za-z .'-]{1,40}?)\s+to\s+([A-Za-z][A-Za-z .'-]{1,40}?)(?=\s+(?:in|on|for|this|next|at|$)|[,.!?]|$)",
+    combined_parts.append(text)
+
+    combined = "\n".join(combined_parts)
+
+    # --------------------------------------------------------
+    # Route
+    #
+    # Examples:
+    #   Pune to Mumbai
+    #   from Pune to Mumbai
+    #   flight from Pune to Mumbai
+    # --------------------------------------------------------
+
+    route_match = re.search(
+        r"(?:from\s+)?"
+        r"([A-Za-z][A-Za-z .'-]{1,40}?)"
+        r"\s+to\s+"
+        r"([A-Za-z][A-Za-z .'-]{1,40}?)"
+        r"(?=\s+(?:in|on|for|this|next|at)\b|[,.!?]|$)",
         combined,
         re.IGNORECASE,
     )
@@ -322,15 +451,28 @@ def extract_flight_request(text: str, history: list[dict]):
     origin = None
     destination = None
 
-    if route:
-        origin = route.group(1).strip()
-        destination = route.group(2).strip()
+    if route_match:
+        origin = route_match.group(1).strip()
+        destination = route_match.group(2).strip()
 
-    # Exact date: 6 September 2026 / 6th September 2026
+    # --------------------------------------------------------
+    # Exact date
+    #
+    # Examples:
+    #   6 September 2026
+    #   6th September 2026
+    # --------------------------------------------------------
+
     date_match = re.search(
-        r"\b(\d{1,2})(?:st|nd|rd|th)?\s+"
-        r"(January|February|March|April|May|June|July|August|September|October|November|December)"
-        r"\s+(\d{4})\b",
+        r"\b"
+        r"(\d{1,2})"
+        r"(?:st|nd|rd|th)?"
+        r"\s+"
+        r"(January|February|March|April|May|June|July|August|"
+        r"September|October|November|December)"
+        r"\s+"
+        r"(\d{4})"
+        r"\b",
         combined,
         re.IGNORECASE,
     )
@@ -339,70 +481,174 @@ def extract_flight_request(text: str, history: list[dict]):
 
     if date_match:
         day, month, year = date_match.groups()
-        dt = datetime.strptime(
-            f"{day} {month} {year}",
-            "%d %B %Y"
-        )
-        departure_date = dt.strftime("%Y-%m-%d")
 
-    # Numeric date: 06/09/2026 or 06-09-2026
+        try:
+            dt = datetime.strptime(
+                f"{day} {month} {year}",
+                "%d %B %Y",
+            )
+
+            departure_date = dt.strftime("%Y-%m-%d")
+
+        except ValueError:
+            departure_date = None
+
+    # --------------------------------------------------------
+    # Numeric date
+    #
+    # Examples:
+    #   06/09/2026
+    #   06-09-2026
+    # --------------------------------------------------------
+
     if not departure_date:
+
         numeric_match = re.search(
             r"\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b",
             combined,
         )
 
         if numeric_match:
-            day, month, year = numeric_match.groups()
-            dt = datetime(
-                int(year),
-                int(month),
-                int(day),
-            )
-            departure_date = dt.strftime("%Y-%m-%d")
 
-    # Month only: September 2026
+            day, month, year = numeric_match.groups()
+
+            try:
+                dt = datetime(
+                    int(year),
+                    int(month),
+                    int(day),
+                )
+
+                departure_date = dt.strftime("%Y-%m-%d")
+
+            except ValueError:
+                departure_date = None
+
+    # --------------------------------------------------------
+    # Month + year
+    #
+    # Example:
+    #   September 2026
+    #
+    # IMPORTANT:
+    # If user only says "September", we also infer 2026
+    # because the current application flow is for 2026.
+    # --------------------------------------------------------
+
     if not departure_date:
-        month_match = re.search(
-            r"\b(January|February|March|April|May|June|July|August|September|October|November|December)"
-            r"\s+(\d{4})\b",
+
+        month_year_match = re.search(
+            r"\b"
+            r"(January|February|March|April|May|June|July|August|"
+            r"September|October|November|December)"
+            r"\s+"
+            r"(\d{4})"
+            r"\b",
             combined,
             re.IGNORECASE,
         )
 
-        if month_match:
-            month, year = month_match.groups()
-            dt = datetime.strptime(
-                f"1 {month} {year}",
-                "%d %B %Y",
-            )
-            departure_date = dt.strftime("%Y-%m")
+        if month_year_match:
+
+            month, year = month_year_match.groups()
+
+            try:
+                dt = datetime.strptime(
+                    f"1 {month} {year}",
+                    "%d %B %Y",
+                )
+
+                departure_date = dt.strftime("%Y-%m")
+
+            except ValueError:
+                departure_date = None
+
+    # --------------------------------------------------------
+    # Month only
+    #
+    # Example:
+    #   September
+    #
+    # Use 2026 as the default year for this app.
+    # --------------------------------------------------------
+
+    if not departure_date:
+
+        month_only_match = re.search(
+            r"\b"
+            r"(January|February|March|April|May|June|July|August|"
+            r"September|October|November|December)"
+            r"\b",
+            combined,
+            re.IGNORECASE,
+        )
+
+        if month_only_match:
+
+            month = month_only_match.group(1)
+
+            try:
+                dt = datetime.strptime(
+                    f"1 {month} 2026",
+                    "%d %B %Y",
+                )
+
+                departure_date = dt.strftime("%Y-%m")
+
+            except ValueError:
+                departure_date = None
 
     return origin, destination, departure_date
-def run_agent(prompt_text: str, memory_context: bool = True) -> tuple[str, dict]:
+
+
+# ============================================================
+# RUN AGENT / FLIGHT CHAT
+# ============================================================
+
+def run_agent(
+    prompt_text: str,
+    memory_context: bool = True,
+) -> tuple[str, dict]:
+
     """
-    Invoke the agent, optionally prepending recent chat turns as context
-    so it stays coherent across a conversation, and always return a
-    non-empty (answer, raw_response) pair for debugging.
+    Flight questions are handled directly using the SAME shared
+    search_flight_data() function used by Generate Travel Plan.
+
+    Other questions are sent to the normal AI agent.
     """
-    if memory_context and st.session_state.chat_history:
-        # The current user message is appended to chat_history before this
-        # function is called. Exclude that final entry because prompt_text
-        # is added separately below; otherwise follow-up messages are sent
-        # to the agent twice.
-        history = st.session_state.chat_history[:-1]
+
+    # --------------------------------------------------------
+    # Previous conversation
+    # --------------------------------------------------------
+
+    history = st.session_state.chat_history[:-1]
+
+    # --------------------------------------------------------
+    # Build normal agent prompt
+    # --------------------------------------------------------
+
+    if memory_context and history:
+
         recent = history[-6:]
-        context_block = "\n".join(f"{m['role']}: {m['content']}" for m in recent)
-        full_prompt = (
-            f"Conversation so far:\n{context_block}\n\nUser: {prompt_text}"
-            if context_block
-            else prompt_text
+
+        context_block = "\n".join(
+            f"{message['role']}: {message['content']}"
+            for message in recent
         )
+
+        full_prompt = (
+            f"Conversation so far:\n"
+            f"{context_block}\n\n"
+            f"User: {prompt_text}"
+        )
+
     else:
         full_prompt = prompt_text
-    # ---------------------------------------------------------
-    # DIRECT FLIGHT HANDLING
-    # ---------------------------------------------------------
+
+    # --------------------------------------------------------
+    # Detect flight request
+    # --------------------------------------------------------
+
     flight_keywords = [
         "flight",
         "flights",
@@ -414,45 +660,73 @@ def run_agent(prompt_text: str, memory_context: bool = True) -> tuple[str, dict]
         "air ticket",
     ]
 
-history = st.session_state.chat_history[:-1]
+    current_lower = prompt_text.lower()
 
-previous_text = "\n".join(
-    m["content"]
-    for m in history
-    if m.get("content")
-)
+    previous_text = "\n".join(
+        message["content"]
+        for message in history
+        if isinstance(message, dict)
+        and message.get("content")
+    )
 
-is_flight_request = (
-    any(
-        keyword in prompt_text.lower()
+    previous_lower = previous_text.lower()
+
+    explicit_flight_request = any(
+        keyword in current_lower
         for keyword in flight_keywords
     )
-    or (
-        any(
-            keyword in previous_text.lower()
-            for keyword in flight_keywords
+
+    month_or_date_followup = bool(
+        re.search(
+            r"\b(?:january|february|march|april|may|june|july|"
+            r"august|september|october|november|december)\b",
+            current_lower,
         )
-        and (
-            re.search(r"\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\b", prompt_text, re.I)
-            or re.search(r"\b\d{1,2}(?:st|nd|rd|th)?\b", prompt_text, re.I)
-            or re.search(r"\b\d{1,2}[/-]\d{1,2}[/-]\d{4}\b", prompt_text)
+        or re.search(
+            r"\b\d{1,2}(?:st|nd|rd|th)?\b",
+            current_lower,
+        )
+        or re.search(
+            r"\b\d{1,2}[/-]\d{1,2}[/-]\d{4}\b",
+            current_lower,
         )
     )
-)
+
+    previous_flight_request = any(
+        keyword in previous_lower
+        for keyword in flight_keywords
+    )
+
+    is_flight_request = (
+        explicit_flight_request
+        or (
+            previous_flight_request
+            and month_or_date_followup
+        )
+    )
+
+    # ========================================================
+    # DIRECT FLIGHT SEARCH
+    # ========================================================
 
     if is_flight_request:
-        history = st.session_state.chat_history[:-1]
 
         origin, destination, departure_date = extract_flight_request(
             prompt_text,
             history,
         )
 
+        # ----------------------------------------------------
+        # Missing route
+        # ----------------------------------------------------
+
         if not origin or not destination:
+
             answer = (
                 "Sure! What are your departure and destination cities? "
                 "For example: Pune to Mumbai."
             )
+
             return answer, {
                 "type": "flight_clarification",
                 "origin": origin,
@@ -460,18 +734,30 @@ is_flight_request = (
                 "departure_date": departure_date,
             }
 
+        # ----------------------------------------------------
+        # Missing date
+        # ----------------------------------------------------
+
         if not departure_date:
+
             answer = (
                 f"Sure! What date or month would you like to fly "
                 f"from {origin} to {destination}?"
             )
+
             return answer, {
                 "type": "flight_clarification",
                 "origin": origin,
                 "destination": destination,
+                "departure_date": departure_date,
             }
 
+        # ----------------------------------------------------
+        # SAME SHARED FLIGHT SEARCH
+        # ----------------------------------------------------
+
         try:
+
             offers = search_flight_data(
                 origin=origin,
                 destination=destination,
@@ -479,14 +765,21 @@ is_flight_request = (
                 token=st.secrets["TRAVELPAYOUTS_TOKEN"],
             )
 
-            answer = format_flight_results(offers)
+            # ------------------------------------------------
+            # Format using SAME shared formatter
+            # ------------------------------------------------
 
-            if not offers:
+            if offers:
+
+                answer = format_flight_results(offers)
+
+            else:
+
                 answer = (
                     f"I couldn't find cached flight price data for "
                     f"{origin} → {destination} on {departure_date}.\n\n"
-                    "The flight database uses cached prices, so this does "
-                    "not necessarily mean flights are unavailable."
+                    "The flight database uses cached prices, so this "
+                    "does not necessarily mean flights are unavailable."
                 )
 
             return answer, {
@@ -498,148 +791,289 @@ is_flight_request = (
             }
 
         except Exception as exc:
-            return (
+
+            answer = (
                 f"I couldn't search flights from {origin} to "
-                f"{destination} right now: {exc}",
-                {
-                    "type": "flight_error",
-                    "error": str(exc),
-                },
+                f"{destination} right now.\n\n"
+                f"Error: {exc}"
             )
+
+            return answer, {
+                "type": "flight_error",
+                "error": str(exc),
+                "origin": origin,
+                "destination": destination,
+                "departure_date": departure_date,
+            }
+
+    # ========================================================
+    # NORMAL AI AGENT
+    # ========================================================
+
     try:
+
         response = agent.invoke(full_prompt)
-        answer = (response.get("output") or "").strip()
+
+        answer = (
+            response.get("output") or ""
+        ).strip()
+
         if not answer:
-            # The agent hit max_iterations (or its early-stopping "generate"
-            # pass failed to produce a parseable Final Answer, which is a
-            # known limitation of STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION
-            # agents - see agent.py). Rather than showing a blank/generic
-            # apology, fall back to whatever the last tool actually returned
-            # so the user still gets useful info.
-            steps = response.get("intermediate_steps") or []
+
+            steps = response.get(
+                "intermediate_steps"
+            ) or []
+
             if steps:
+
                 last_action, last_observation = steps[-1]
+
                 answer = (
-                    f"(Ran out of reasoning steps, but here's what I found "
-                    f"from **{last_action.tool}**:)\n\n{last_observation}"
+                    f"(Ran out of reasoning steps, but here's what "
+                    f"I found from **{last_action.tool}**:)\n\n"
+                    f"{last_observation}"
                 )
+
             else:
+
                 answer = (
-                    "I couldn't work out a full answer that time - could you "
-                    "rephrase, or give an explicit month/date?"
+                    "I couldn't work out a full answer that time. "
+                    "Could you rephrase your question?"
                 )
+
     except Exception as exc:
+
         answer = f"Something went wrong: {exc}"
-        response = {"output": answer}
+
+        response = {
+            "output": answer
+        }
 
     return answer, response
 
 
-# ----------------------------
-# Hero
-# ----------------------------
-st.markdown('<span class="eyebrow">TEAM ELEVATEX // MISSION CONTROL</span>', unsafe_allow_html=True)
-st.markdown('<div class="hero-title">AI Travel Concierge</div>', unsafe_allow_html=True)
+# ============================================================
+# HERO
+# ============================================================
+
 st.markdown(
-    '<div class="hero-sub">Plan trips across India with an agent that pulls live web '
-    'context, cached flight prices, and a curated travel guide - and talks back in '
-    'whatever language you use.</div>',
+    '<span class="eyebrow">TEAM ELEVATEX // MISSION CONTROL</span>',
     unsafe_allow_html=True,
 )
-st.markdown('<div class="hud-line"></div>', unsafe_allow_html=True)
 
-# ----------------------------
-# Sidebar: Flight Log (saved searches)
-# ----------------------------
+st.markdown(
+    '<div class="hero-title">AI Travel Concierge</div>',
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    '<div class="hero-sub">'
+    'Plan trips across India with an agent that pulls live web '
+    'context, cached flight prices, and a curated travel guide - '
+    'and talks back in whatever language you use.'
+    '</div>',
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    '<div class="hud-line"></div>',
+    unsafe_allow_html=True,
+)
+
+
+# ============================================================
+# SIDEBAR
+# ============================================================
+
 with st.sidebar:
-    st.markdown('<span class="eyebrow">🛰️ Flight Log</span>', unsafe_allow_html=True)
+
+    st.markdown(
+        '<span class="eyebrow">🛰️ Flight Log</span>',
+        unsafe_allow_html=True,
+    )
+
     saved = db.get_saved_searches()
+
     if not saved:
-        st.caption("No saved trips yet. Generate a plan to log it here.")
+
+        st.caption(
+            "No saved trips yet. Generate a plan to log it here."
+        )
+
     for row in saved:
+
         st.markdown(
-            f"""<div class="log-item">
-                <div class="log-route">{row['origin']} → {row['destination']}</div>
-                <div class="log-meta">{row['start_date']} · {row['travelers']} pax · ₹{row['budget']}</div>
-            </div>""",
+            f"""
+            <div class="log-item">
+                <div class="log-route">
+                    {row['origin']} → {row['destination']}
+                </div>
+
+                <div class="log-meta">
+                    {row['start_date']} ·
+                    {row['travelers']} pax ·
+                    ₹{row['budget']}
+                </div>
+            </div>
+            """,
             unsafe_allow_html=True,
         )
+
         with st.expander("View manifest"):
+
             st.write(row["itinerary"])
-            if st.button("Delete entry", key=f"del_{row['id']}"):
+
+            if st.button(
+                "Delete entry",
+                key=f"del_{row['id']}",
+            ):
+
                 db.delete_search(row["id"])
+
                 st.rerun()
 
-# ----------------------------
-# Trip Planning Form
-# ----------------------------
-st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
-st.markdown('<span class="eyebrow">Mission Parameters</span>', unsafe_allow_html=True)
+
+# ============================================================
+# TRIP PLANNING FORM
+# ============================================================
+
+st.markdown(
+    '<div class="glass-panel">',
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    '<span class="eyebrow">Mission Parameters</span>',
+    unsafe_allow_html=True,
+)
 
 col1, col2 = st.columns(2)
 
-with col1:
-    origin = st.text_input("🛫 Departure City", value="Mumbai")
-    destination = st.text_input("📍 Destination")
 
-    start_date = st.date_input("📅 Start Date", value=date.today())
-    end_date = st.date_input("📅 End Date", value=date.today())
+with col1:
+
+    origin = st.text_input(
+        "🛫 Departure City",
+        value="Mumbai",
+    )
+
+    destination = st.text_input(
+        "📍 Destination",
+    )
+
+    start_date = st.date_input(
+        "📅 Start Date",
+        value=date.today(),
+    )
+
+    end_date = st.date_input(
+        "📅 End Date",
+        value=date.today(),
+    )
 
     travelers = st.number_input(
         "👨‍👩‍👧 Number of Travelers",
         min_value=1,
         max_value=20,
-        value=2
+        value=2,
     )
 
+
 with col2:
+
     budget = st.slider(
         "💰 Budget (₹)",
         5000,
         200000,
         30000,
-        step=1000
+        step=1000,
     )
 
     travel_style = st.selectbox(
         "🎒 Travel Style",
-        ["Adventure", "Luxury", "Budget", "Family", "Solo", "Business"]
+        [
+            "Adventure",
+            "Luxury",
+            "Budget",
+            "Family",
+            "Solo",
+            "Business",
+        ],
     )
 
     interests = st.multiselect(
         "❤️ Interests",
         [
-            "Beaches", "Mountains", "Food", "Shopping",
-            "Historical Places", "Nightlife", "Wildlife", "Photography"
-        ]
+            "Beaches",
+            "Mountains",
+            "Food",
+            "Shopping",
+            "Historical Places",
+            "Nightlife",
+            "Wildlife",
+            "Photography",
+        ],
     )
 
-generate_clicked = st.button("✨ Generate Travel Plan", use_container_width=True)
-st.markdown('</div>', unsafe_allow_html=True)
+
+generate_clicked = st.button(
+    "✨ Generate Travel Plan",
+    use_container_width=True,
+)
+
+st.markdown(
+    '</div>',
+    unsafe_allow_html=True,
+)
+
+
+# ============================================================
+# GENERATE TRAVEL PLAN
+# ============================================================
 
 if generate_clicked:
+
     if not destination:
-        st.warning("Please enter a destination first.")
+
+        st.warning(
+            "Please enter a destination first."
+        )
+
     else:
-        # Run the SAME shared flight-search function used by the chat agent.
-        # The result is then handed to the itinerary agent so the button does
-        # not have a second, different flight-search implementation.
+
         flight_error = None
         flight_offers = []
+
+        # ----------------------------------------------------
+        # SAME SHARED FLIGHT SEARCH FUNCTION
+        # ----------------------------------------------------
+
         try:
+
             flight_offers = search_flight_data(
                 origin=origin,
                 destination=destination,
                 departure_date=start_date.isoformat(),
                 token=st.secrets["TRAVELPAYOUTS_TOKEN"],
             )
-            flight_context = format_flight_results(flight_offers)
-        except RuntimeError as exc:
+
+            flight_context = format_flight_results(
+                flight_offers
+            )
+
+        except Exception as exc:
+
             flight_error = str(exc)
+
             flight_context = flight_error
+
+        # ----------------------------------------------------
+        # Itinerary prompt
+        # ----------------------------------------------------
 
         prompt = f"""
 Plan a trip with the following details:
+
 - Departure city: {origin}
 - Destination: {destination}
 - Travel dates: {start_date} to {end_date}
@@ -649,48 +1083,124 @@ Plan a trip with the following details:
 - Interests: {", ".join(interests) if interests else "general sightseeing"}
 
 IMPORTANT FLIGHT DATA:
-The application has ALREADY run the shared Flight Search logic for this
-trip. Use the exact flight results below in the itinerary and do NOT call
-the Flight Search tool again for this request. Do not invent flight options.
+
+The application has ALREADY run the shared Flight Search logic
+for this trip.
+
+Use the exact flight results below in the itinerary.
+
+Do NOT call the Flight Search tool again for this request.
+
+Do NOT invent flight options.
+
 If the result says there is no cached data, say so clearly.
 
 {flight_context}
 
-Use the PDF Travel Guide tool for background on {destination} in India, and
-the Web Search tool for anything current (weather, events, prices) not
-covered by the PDF. Then produce a day-by-day itinerary that fits the
-budget and interests, and mention the flight options found above. Respond
-in English unless the destination or interests suggest otherwise.
-"""
-        with st.spinner("Plotting flight paths and building itinerary..."):
-            itinerary_text, response = run_agent(prompt, memory_context=False)
+Use the PDF Travel Guide tool for background on {destination} in India.
 
-        # NOTE: Streamlit's markdown renderer treats any line indented by
-        # 4+ spaces as a code block, so this HTML must NOT be indented -
-        # otherwise the closing </div> tags render as literal visible text
-        # instead of being parsed as HTML (this was the bug producing the
-        # stray "</div></div>" text under the manifest).
+Use the Web Search tool for anything current such as weather,
+events, or prices that is not covered by the PDF.
+
+Then produce a day-by-day itinerary that fits the budget and
+interests.
+
+Mention the flight options found above.
+
+Respond in English unless the destination or interests suggest otherwise.
+"""
+
+        # ----------------------------------------------------
+        # Generate itinerary
+        # ----------------------------------------------------
+
+        with st.spinner(
+            "Plotting flight paths and building itinerary..."
+        ):
+
+            itinerary_text, response = run_agent(
+                prompt,
+                memory_context=False,
+            )
+
+        # ----------------------------------------------------
+        # Flight result display
+        # ----------------------------------------------------
+
         if flight_error:
-            st.warning(f"Flight search unavailable: {flight_error}")
+
+            st.warning(
+                f"Flight search unavailable: {flight_error}"
+            )
+
         elif flight_offers:
-            with st.expander("✈️ Flight options used for this plan", expanded=True):
-                st.markdown(format_flight_results(flight_offers))
+
+            with st.expander(
+                "✈️ Flight options used for this plan",
+                expanded=True,
+            ):
+
+                st.markdown(
+                    format_flight_results(
+                        flight_offers
+                    )
+                )
+
         else:
-            st.info("No cached flight price data was found for this route/date.")
+
+            st.info(
+                "No cached flight price data was found "
+                "for this route/date."
+            )
+
+        # ----------------------------------------------------
+        # Boarding pass
+        # ----------------------------------------------------
 
         boarding_pass_html = (
             '<div class="boarding-pass">'
+
             '<div class="bp-topline">'
-            '<span class="bp-eyebrow">TRIP MANIFEST</span>'
-            f'<span class="bp-route">{origin.upper()} → {destination.upper()}</span>'
+
+            '<span class="bp-eyebrow">'
+            'TRIP MANIFEST'
+            '</span>'
+
+            f'<span class="bp-route">'
+            f'{origin.upper()} → {destination.upper()}'
+            f'</span>'
+
             '</div>'
+
             '<div class="bp-divider"></div>'
-            f'<div class="bp-content">\n\n{itinerary_text}\n\n</div>'
+
+            '<div class="bp-content">'
+
+            f'{itinerary_text}'
+
+            '</div>'
+
             '</div>'
         )
-        st.markdown(boarding_pass_html, unsafe_allow_html=True)
-        with st.expander("🔍 Debug: raw agent response"):
+
+        st.markdown(
+            boarding_pass_html,
+            unsafe_allow_html=True,
+        )
+
+        # ----------------------------------------------------
+        # Debug
+        # ----------------------------------------------------
+
+        with st.expander(
+            "🔍 Debug: raw agent response"
+        ):
+
             st.json(response)
+
+        # ----------------------------------------------------
+        # Save search
+        # ----------------------------------------------------
 
         db.save_search(
             destination=destination,
@@ -703,41 +1213,131 @@ in English unless the destination or interests suggest otherwise.
             interests=interests,
             itinerary=itinerary_text,
         )
-        st.success("Logged to Flight Log ✅")
 
-st.markdown('<div class="hud-line"></div>', unsafe_allow_html=True)
+        st.success(
+            "Logged to Flight Log ✅"
+        )
 
-# ----------------------------
-# Chat with the agent (multilingual, remembers recent turns)
-# ----------------------------
-st.markdown('<span class="eyebrow">Live Channel</span>', unsafe_allow_html=True)
+
+# ============================================================
+# CHAT
+# ============================================================
+
 st.markdown(
-    '<span class="lang-badge">🌐 हिंदी · English · Hinglish · +more</span>',
+    '<div class="hud-line"></div>',
     unsafe_allow_html=True,
 )
 
-for msg in st.session_state.chat_history:
-    avatar = "🧑‍🚀" if msg["role"] == "user" else "🤖"
-    with st.chat_message(msg["role"], avatar=avatar):
-        st.markdown(msg["content"])
+st.markdown(
+    '<span class="eyebrow">Live Channel</span>',
+    unsafe_allow_html=True,
+)
 
-user_msg = st.chat_input("Ask anything - kisi bhi bhasha mein poochh sakte hain...")
+st.markdown(
+    '<span class="lang-badge">'
+    '🌐 हिंदी · English · Hinglish · +more'
+    '</span>',
+    unsafe_allow_html=True,
+)
+
+
+# ------------------------------------------------------------
+# Display previous messages
+# ------------------------------------------------------------
+
+for msg in st.session_state.chat_history:
+
+    avatar = (
+        "🧑‍🚀"
+        if msg["role"] == "user"
+        else "🤖"
+    )
+
+    with st.chat_message(
+        msg["role"],
+        avatar=avatar,
+    ):
+
+        st.markdown(
+            msg["content"]
+        )
+
+
+# ------------------------------------------------------------
+# Chat input
+# ------------------------------------------------------------
+
+user_msg = st.chat_input(
+    "Ask anything - kisi bhi bhasha mein poochh sakte hain..."
+)
+
 
 if user_msg:
-    st.session_state.chat_history.append({"role": "user", "content": user_msg})
-    with st.chat_message("user", avatar="🧑‍🚀"):
+
+    # --------------------------------------------------------
+    # Save user message
+    # --------------------------------------------------------
+
+    st.session_state.chat_history.append(
+        {
+            "role": "user",
+            "content": user_msg,
+        }
+    )
+
+    with st.chat_message(
+        "user",
+        avatar="🧑‍🚀",
+    ):
+
         st.markdown(user_msg)
 
-    with st.chat_message("assistant", avatar="🤖"):
-        with st.spinner("Thinking..."):
-            answer, response = run_agent(user_msg, memory_context=True)
+    # --------------------------------------------------------
+    # Generate response
+    # --------------------------------------------------------
+
+    with st.chat_message(
+        "assistant",
+        avatar="🤖",
+    ):
+
+        with st.spinner(
+            "Thinking..."
+        ):
+
+            answer, response = run_agent(
+                user_msg,
+                memory_context=True,
+            )
+
         st.markdown(answer)
-        with st.expander("🔍 Debug: raw agent response"):
+
+        with st.expander(
+            "🔍 Debug: raw agent response"
+        ):
+
             st.json(response)
 
-    st.session_state.chat_history.append({"role": "assistant", "content": answer})
+    # --------------------------------------------------------
+    # Save assistant response
+    # --------------------------------------------------------
 
-st.markdown('<div class="hud-line"></div>', unsafe_allow_html=True)
+    st.session_state.chat_history.append(
+        {
+            "role": "assistant",
+            "content": answer,
+        }
+    )
+
+
+# ============================================================
+# FOOTER
+# ============================================================
+
+st.markdown(
+    '<div class="hud-line"></div>',
+    unsafe_allow_html=True,
+)
 
 st.markdown(
     """
@@ -749,6 +1349,7 @@ st.markdown(
 - 🗺️ Maps & route planning
 
 ---
+
 Made with ❤️ by **Team ElevateX**
 """,
     unsafe_allow_html=True,
