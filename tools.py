@@ -44,12 +44,6 @@ def search_flight_data(
     departure_date: str,
     token: str,
 ) -> list[dict]:
-    """Shared flight-search implementation used by both the UI and the AI agent.
-
-    Keeping the Travelpayouts call here guarantees that the Generate Travel
-    Plan button and the chat agent use identical route/date resolution,
-    API parameters, error handling, and returned offer data.
-    """
     try:
         return travelpayouts_client.search_flights(
             origin=origin,
@@ -62,21 +56,22 @@ def search_flight_data(
 
 
 def format_flight_results(offers: list[dict]) -> str:
-    """Format shared flight results for the LLM and the Streamlit UI."""
     if not offers:
         return "No cached flight price data found for that route/date."
 
     lines = []
     for o in offers:
         lines.append(
-            f"{o['airline']}{o['flight_number']} | {o['origin']} -> {o['destination']} | "
-            f"departs {o['departure_at']} | {o['price']} {o['currency']}"
+            f"{o['airline']}{o['flight_number']} | "
+            f"{o['origin']} -> {o['destination']} | "
+            f"departs {o['departure_at']} | "
+            f"{o['price']} {o['currency']}"
         )
+
     return (
         "Note: prices are cached recent searches, not a live quote.\n"
         + "\n".join(lines)
     )
-
 
 def create_flight_tool(token: str):
     def _search(origin: str, destination: str, departure_date: str) -> str:
