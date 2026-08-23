@@ -405,19 +405,23 @@ if "chat_history" not in st.session_state:
 # FLIGHT REQUEST EXTRACTION
 # ============================================================
 
-def extract_flight_request(text: str, history: list[dict]):
+# ============================================================
+# FLIGHT REQUEST EXTRACTION
+# ============================================================
+
+def extract_flight_request(
+    text: str,
+    history: list[dict],
+):
     """
     Extract:
-
     origin
     destination
     departure date/month
-
     from the current message plus previous conversation.
     """
 
-    combined = "\n".join(combined_parts)
-    clean_combined = re.sub(r"(?i)\b(flight(?:s)?|price|cost|fare|ticket(?:s)?)\b", "", combined).strip()
+    combined_parts = []
 
     for message in history:
         if isinstance(message, dict) and message.get("content"):
@@ -426,18 +430,24 @@ def extract_flight_request(text: str, history: list[dict]):
     combined_parts.append(text)
 
     combined = "\n".join(combined_parts)
+    
+    # Remove keywords so the regex doesn't swallow them
+    clean_combined = re.sub(
+        r"(?i)\b(flight(?:s)?|price|cost|fare|ticket(?:s)?)\b", 
+        "", 
+        combined
+    ).strip()
 
     # --------------------------------------------------------
     # Route
-    #
-    # Examples:
-    #   Pune to Mumbai
-    #   from Pune to Mumbai
-    #   flight from Pune to Mumbai
     # --------------------------------------------------------
 
     route_match = re.search(
-        r"(?:from\s+)?([A-Za-z][A-Za-z .'-]{1,25}?)\s+to\s+([A-Za-z][A-Za-z .'-]{1,25}?)(?=\s+(?:in|on|for|this|next|at)\b|[,.!?]|$)",
+        r"(?:from\s+)?"
+        r"([A-Za-z][A-Za-z .'-]{1,25}?)"
+        r"\s+to\s+"
+        r"([A-Za-z][A-Za-z .'-]{1,25}?)"
+        r"(?=\s+(?:in|on|for|this|next|at)\b|[,.!?]|$)",
         clean_combined,
         re.IGNORECASE,
     )
@@ -451,10 +461,6 @@ def extract_flight_request(text: str, history: list[dict]):
 
     # --------------------------------------------------------
     # Exact date
-    #
-    # Examples:
-    #   6 September 2026
-    #   6th September 2026
     # --------------------------------------------------------
 
     date_match = re.search(
@@ -489,10 +495,6 @@ def extract_flight_request(text: str, history: list[dict]):
 
     # --------------------------------------------------------
     # Numeric date
-    #
-    # Examples:
-    #   06/09/2026
-    #   06-09-2026
     # --------------------------------------------------------
 
     if not departure_date:
@@ -520,13 +522,6 @@ def extract_flight_request(text: str, history: list[dict]):
 
     # --------------------------------------------------------
     # Month + year
-    #
-    # Example:
-    #   September 2026
-    #
-    # IMPORTANT:
-    # If user only says "September", we also infer 2026
-    # because the current application flow is for 2026.
     # --------------------------------------------------------
 
     if not departure_date:
@@ -559,11 +554,6 @@ def extract_flight_request(text: str, history: list[dict]):
 
     # --------------------------------------------------------
     # Month only
-    #
-    # Example:
-    #   September
-    #
-    # Use 2026 as the default year for this app.
     # --------------------------------------------------------
 
     if not departure_date:
