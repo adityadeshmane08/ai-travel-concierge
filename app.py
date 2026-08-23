@@ -409,6 +409,10 @@ if "chat_history" not in st.session_state:
 # FLIGHT REQUEST EXTRACTION
 # ============================================================
 
+# ============================================================
+# FLIGHT REQUEST EXTRACTION
+# ============================================================
+
 def extract_flight_request(
     text: str,
     history: list[dict],
@@ -418,16 +422,16 @@ def extract_flight_request(
     origin
     destination
     departure date/month
-    from the current message plus previous conversation.
+    from the current message plus previous conversation (newest first).
     """
 
-    combined_parts = []
+    # 1. Put the newest message FIRST
+    combined_parts = [text]
 
-    for message in history:
-        if isinstance(message, dict) and message.get("content"):
+    # 2. Add history in REVERSE order, only looking at what the user typed
+    for message in reversed(history):
+        if isinstance(message, dict) and message.get("content") and message.get("role") == "user":
             combined_parts.append(message["content"])
-
-    combined_parts.append(text)
 
     combined = "\n".join(combined_parts)
     
