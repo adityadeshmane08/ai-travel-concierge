@@ -10,7 +10,7 @@ from tools import create_pdf_tool, create_web_tool, create_flight_tool
 
 def create_agent(retriever):
     llm = ChatGroq(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         api_key=st.secrets["GROQ_API_KEY"]
     )
 
