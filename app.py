@@ -1294,11 +1294,7 @@ if user_msg:
 
         st.markdown(answer)
 
-        with st.expander(
-            "🔍 Debug: raw agent response"
-        ):
-
-            st.json(response)
+        
 
     # --------------------------------------------------------
     # Save assistant response
