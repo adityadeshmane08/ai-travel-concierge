@@ -873,6 +873,10 @@ st.markdown(
 # SIDEBAR
 # ============================================================
 
+# ============================================================
+# SIDEBAR FLIGHT LOG (Clean & Readable)
+# ============================================================
+
 with st.sidebar:
 
     st.markdown(
@@ -890,35 +894,28 @@ with st.sidebar:
 
     for row in saved:
 
-        st.markdown(
-            f"""
-            <div class="log-item">
-                <div class="log-route">
-                    {row['origin']} → {row['destination']}
-                </div>
+        # Clean, human-readable card layout without raw HTML exposure
+        with st.container():
+            st.markdown(f"**{row['origin']} ➔ {row['destination']}**")
+            
+            # Display readable metadata
+            st.caption(
+                f"📅 {row['start_date']} | "
+                f"👥 {row['travelers']} Travelers | "
+                f"💰 ₹{row['budget']}"
+            )
 
-                <div class="log-meta">
-                    {row['start_date']} ·
-                    {row['travelers']} pax ·
-                    ₹{row['budget']}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        with st.expander("View manifest"):
-
+        with st.expander("View manifest details"):
             st.write(row["itinerary"])
 
             if st.button(
                 "Delete entry",
                 key=f"del_{row['id']}",
             ):
-
                 db.delete_search(row["id"])
-
                 st.rerun()
+        
+        st.markdown("---")
 
 
 # ============================================================
