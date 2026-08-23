@@ -55,6 +55,8 @@ must behave consistently. Always mention when flight prices are cached
 estimates, not live bookable fares. When a user provides a follow-up date,
 combine it with the origin/destination from the conversation before calling
 Flight Search.
+CRITICAL FORMATTING INSTRUCTION: 
+When providing your action, you must output raw JSON only. Do NOT wrap your JSON response in ```json ... ``` markdown formatting blocks.
 """
 
     # STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION (rather than the plain
