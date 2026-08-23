@@ -68,10 +68,7 @@ def format_flight_results(offers: list[dict]) -> str:
             f"{o['price']} {o['currency']}"
         )
 
-    return (
-        "Note: prices are cached recent searches, not a live quote.\n"
-        + "\n".join(lines)
-    )
+    return "\n".join(lines)
 
 def create_flight_tool(token: str):
     def _search(origin: str, destination: str, departure_date: str) -> str:
