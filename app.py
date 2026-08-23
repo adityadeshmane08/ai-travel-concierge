@@ -1178,13 +1178,7 @@ Respond in English unless the destination or interests suggest otherwise.
 
         # ----------------------------------------------------
         # Debug
-        # ----------------------------------------------------
-
-        with st.expander(
-            "🔍 Debug: raw agent response"
-        ):
-
-            st.json(response)
+        # --------------------------------------------------
 
         # ----------------------------------------------------
         # Save search
