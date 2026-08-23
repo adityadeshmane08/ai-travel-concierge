@@ -17,28 +17,7 @@ import requests
 DATA_API_BASE = "https://api.travelpayouts.com"
 AUTOCOMPLETE_BASE = "https://autocomplete.travelpayouts.com"
 
-
-def get_iata_code(keyword: str) -> str | None:
-    """
-    Resolve a free-text city/airport name (e.g. 'Mumbai', 'Goa') to an
-    IATA code (e.g. 'BOM', 'GOI') using Travelpayouts' free autocomplete
-    endpoint (no token required). Returns None if nothing is found.
-    """
-    keyword = keyword.strip()
-    if len(keyword) == 3 and keyword.isalpha():
-        return keyword.upper()
-
-    resp = requests.get(
-        f"{AUTOCOMPLETE_BASE}/places2",
-        params={"term": keyword, "locale": "en", "types[]": "city"},
-        timeout=15,
-    )
-    resp.raise_for_status()
-    results = resp.json()
-    if not results:
-        return None
-    return results[0]["code"]
-
+# ... [keep your existing get_iata_code function] ...
 
 def search_flights(
     origin: str,
@@ -49,12 +28,8 @@ def search_flights(
 ) -> list[dict]:
     """
     Look up cached cheapest-flight data for a route/month using the
-    Travelpayouts v1/prices/cheap endpoint. departure_date can be a full
-    date (YYYY-MM-DD) or a month (YYYY-MM); the API buckets by month
-    internally either way.
-
-    Returns a list of simplified offer dicts: airline, flight_number,
-    price, currency, departure_at.
+    Travelpayouts v1/prices/cheap endpoint. 
+    If the exact date is not cached, searches for any available dates.
     """
     origin_code = get_iata_code(origin)
     dest_code = get_iata_code(destination)
@@ -64,17 +39,16 @@ def search_flights(
             f"Could not resolve airport codes for '{origin}' -> '{destination}'."
         )
 
-    resp = requests.get(
-        f"{DATA_API_BASE}/v1/prices/cheap",
-        params={
-            "origin": origin_code,
-            "destination": dest_code,
-            "depart_date": departure_date,
-            "currency": currency,
-            "token": token,
-        },
-        timeout=20,
-    )
+    # First attempt: Search with the specific date
+    params = {
+        "origin": origin_code,
+        "destination": dest_code,
+        "depart_date": departure_date,
+        "currency": currency,
+        "token": token,
+    }
+    
+    resp = requests.get(f"{DATA_API_BASE}/v1/prices/cheap", params=params, timeout=20)
     resp.raise_for_status()
     payload = resp.json()
 
@@ -82,9 +56,17 @@ def search_flights(
         raise ValueError(payload.get("error") or "Travelpayouts request failed.")
 
     route_data = payload.get("data", {}).get(dest_code, {})
-    if not route_data:
-        return []
 
+    # Second attempt: If exact date has no cache, search WITHOUT the date
+    if not route_data:
+        del params["depart_date"]
+        fallback_resp = requests.get(f"{DATA_API_BASE}/v1/prices/cheap", params=params, timeout=20)
+        fallback_payload = fallback_resp.json()
+        
+        if fallback_payload.get("success", False):
+            route_data = fallback_payload.get("data", {}).get(dest_code, {})
+
+    # Format the real data
     simplified = []
     for offer in route_data.values():
         simplified.append({
