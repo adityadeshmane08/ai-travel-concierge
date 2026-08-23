@@ -405,10 +405,7 @@ if "chat_history" not in st.session_state:
 # FLIGHT REQUEST EXTRACTION
 # ============================================================
 
-def extract_flight_request(
-    text: str,
-    history: list[dict],
-):
+def extract_flight_request(text: str, history: list[dict]):
     """
     Extract:
 
@@ -419,7 +416,8 @@ def extract_flight_request(
     from the current message plus previous conversation.
     """
 
-    combined_parts = []
+    combined = "\n".join(combined_parts)
+    clean_combined = re.sub(r"(?i)\b(flight(?:s)?|price|cost|fare|ticket(?:s)?)\b", "", combined).strip()
 
     for message in history:
         if isinstance(message, dict) and message.get("content"):
@@ -439,12 +437,8 @@ def extract_flight_request(
     # --------------------------------------------------------
 
     route_match = re.search(
-        r"(?:from\s+)?"
-        r"([A-Za-z][A-Za-z .'-]{1,40}?)"
-        r"\s+to\s+"
-        r"([A-Za-z][A-Za-z .'-]{1,40}?)"
-        r"(?=\s+(?:in|on|for|this|next|at)\b|[,.!?]|$)",
-        combined,
+        r"(?:from\s+)?([A-Za-z][A-Za-z .'-]{1,25}?)\s+to\s+([A-Za-z][A-Za-z .'-]{1,25}?)(?=\s+(?:in|on|for|this|next|at)\b|[,.!?]|$)",
+        clean_combined,
         re.IGNORECASE,
     )
 
