@@ -27,18 +27,16 @@ st.set_page_config(
 )
 
 
-# ----------------------------
-# Theme
-# ----------------------------
 THEME_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
     --bg-void: #0a0e17;
-    --bg-panel: rgba(19, 27, 46, 0.55);
+    --bg-panel: rgba(19, 27, 46, 0.65);
     --bg-panel-solid: #131b2e;
-    --border-glow: rgba(34, 211, 238, 0.28);
+    --border-glow: rgba(34, 211, 238, 0.35);
+    --border-glow-hover: rgba(167, 139, 250, 0.6);
     --accent-cyan: #22d3ee;
     --accent-violet: #a78bfa;
     --accent-amber: #fbbf24;
@@ -51,34 +49,18 @@ html, body, .stApp {
     background:
         radial-gradient(
             ellipse 80% 50% at 20% -10%,
-            rgba(34,211,238,0.10),
+            rgba(34,211,238,0.12),
             transparent
         ),
         radial-gradient(
             ellipse 60% 40% at 90% 10%,
-            rgba(167,139,250,0.10),
+            rgba(167,139,250,0.12),
             transparent
         ),
         var(--bg-void) !important;
 
     color: var(--text-primary);
     font-family: 'Inter', sans-serif;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    .stApp {
-        animation: bgshift 30s ease-in-out infinite alternate;
-    }
-
-    @keyframes bgshift {
-        0% {
-            background-position: 0% 0%, 100% 0%, 0 0;
-        }
-
-        100% {
-            background-position: 5% 5%, 95% -5%, 0 0;
-        }
-    }
 }
 
 h1, h2, h3 {
@@ -88,18 +70,18 @@ h1, h2, h3 {
 
 .eyebrow {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     letter-spacing: 0.18em;
     color: var(--accent-cyan);
     text-transform: uppercase;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.4rem;
     display: block;
 }
 
 .hero-title {
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
-    font-size: 2.6rem;
+    font-size: 2.8rem;
     line-height: 1.1;
     background: linear-gradient(
         90deg,
@@ -110,54 +92,50 @@ h1, h2, h3 {
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.4rem;
 }
 
 .hero-sub {
     color: var(--text-muted);
-    font-size: 1.02rem;
-    max-width: 640px;
+    font-size: 1.05rem;
+    max-width: 680px;
+    line-height: 1.6;
 }
 
 .hud-line {
     height: 1px;
-    margin: 1.4rem 0 1.6rem 0;
+    margin: 1.6rem 0 1.8rem 0;
     background: linear-gradient(
         90deg,
         var(--accent-cyan),
         transparent 70%
     );
-    opacity: 0.5;
+    opacity: 0.6;
 }
 
-/* Buttons */
+/* Sleek Buttons with Smooth Hover Animation */
 .stButton > button {
     background: linear-gradient(
         90deg,
         var(--accent-cyan),
         var(--accent-violet)
     );
-
     color: #08101f;
     font-weight: 600;
     border: none;
-    border-radius: 10px;
-    padding: 0.6rem 1rem;
-
-    box-shadow: 0 0 18px rgba(34, 211, 238, 0.35);
-
-    transition:
-        transform 0.15s ease,
-        box-shadow 0.15s ease;
+    border-radius: 12px;
+    padding: 0.65rem 1.2rem;
+    box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
+    transition: all 0.25s ease;
 }
 
 .stButton > button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 0 26px rgba(167, 139, 250, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 0 30px rgba(167, 139, 250, 0.6);
     color: #08101f;
 }
 
-/* Inputs */
+/* Inputs & Form Elements */
 [data-testid="stTextInput"] input,
 [data-testid="stNumberInput"] input,
 [data-testid="stDateInput"] input,
@@ -166,122 +144,62 @@ textarea {
     background: var(--bg-panel-solid) !important;
     color: var(--text-primary) !important;
     border: 1px solid var(--border-glow) !important;
-    border-radius: 8px !important;
+    border-radius: 10px !important;
+    transition: border-color 0.2s ease;
+}
+
+[data-testid="stTextInput"] input:focus,
+[data-testid="stNumberInput"] input:focus,
+[data-testid="stDateInput"] input:focus {
+    border-color: var(--accent-cyan) !important;
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
 }
 
 [data-testid="stSelectbox"] div[data-baseweb="select"] > div,
 [data-testid="stMultiSelect"] div[data-baseweb="select"] > div {
     background: var(--bg-panel-solid) !important;
     border: 1px solid var(--border-glow) !important;
-    border-radius: 8px !important;
+    border-radius: 10px !important;
 }
 
 [data-baseweb="tag"] {
     background: rgba(34, 211, 238, 0.18) !important;
     border: 1px solid var(--accent-cyan) !important;
+    border-radius: 6px !important;
 }
 
-[data-testid="stSlider"] [role="slider"] {
-    background-color: var(--accent-cyan) !important;
-    box-shadow: 0 0 10px var(--accent-cyan);
-}
-
-/* Sidebar */
-[data-testid="stSidebar"] {
-    background: linear-gradient(
-        180deg,
-        #0d1424,
-        #0a0e17
-    ) !important;
-
-    border-right: 1px solid var(--border-glow);
-}
-
-/* Alerts */
-[data-testid="stAlert"] {
-    background: var(--bg-panel) !important;
-    border: 1px solid var(--border-glow) !important;
-    border-radius: 10px !important;
-    backdrop-filter: blur(6px);
-}
-
-/* Expander */
-[data-testid="stExpander"] {
-    background: var(--bg-panel) !important;
-    border: 1px solid var(--border-glow) !important;
-    border-radius: 10px !important;
-}
-
-/* Chat messages */
-[data-testid="stChatMessage"] {
-    background: var(--bg-panel) !important;
-    border: 1px solid var(--border-glow);
-    border-radius: 12px;
-    backdrop-filter: blur(6px);
-}
-
-/* Glass panel */
+/* Glass Panels with Hover Glow */
 .glass-panel {
     background: var(--bg-panel);
     border: 1px solid var(--border-glow);
-    border-radius: 16px;
-    padding: 1.4rem 1.5rem 0.6rem 1.5rem;
-    backdrop-filter: blur(10px);
-    margin-bottom: 1.2rem;
+    border-radius: 18px;
+    padding: 1.6rem 1.8rem 1rem 1.8rem;
+    backdrop-filter: blur(12px);
+    margin-bottom: 1.4rem;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    transition: border-color 0.3s ease;
 }
 
-/* Boarding-pass itinerary card */
+.glass-panel:hover {
+    border-color: var(--border-glow-hover);
+}
+
+/* Boarding-Pass Itinerary Card */
 .boarding-pass {
     position: relative;
     background: linear-gradient(
         160deg,
-        rgba(19,27,46,0.9),
-        rgba(10,14,23,0.9)
+        rgba(19,27,46,0.92),
+        rgba(10,14,23,0.95)
     );
-
     border: 1px solid var(--accent-cyan);
-    border-radius: 16px;
-    padding: 1.6rem 1.8rem;
-    margin: 1rem 0 1.4rem 0;
-
+    border-radius: 18px;
+    padding: 1.8rem 2rem;
+    margin: 1.2rem 0 1.6rem 0;
     box-shadow:
-        0 0 30px rgba(34, 211, 238, 0.18),
-        inset 0 0 40px rgba(167,139,250,0.05);
-
+        0 0 35px rgba(34, 211, 238, 0.2),
+        inset 0 0 45px rgba(167,139,250,0.06);
     overflow: hidden;
-}
-
-.boarding-pass::before {
-    content: "";
-    position: absolute;
-
-    top: -10px;
-    left: 38px;
-
-    width: 20px;
-    height: 20px;
-
-    background: var(--bg-void);
-    border-radius: 50%;
-
-    box-shadow: 0 0 0 1px var(--accent-cyan);
-}
-
-.boarding-pass::after {
-    content: "";
-
-    position: absolute;
-
-    bottom: -10px;
-    left: 38px;
-
-    width: 20px;
-    height: 20px;
-
-    background: var(--bg-void);
-    border-radius: 50%;
-
-    box-shadow: 0 0 0 1px var(--accent-cyan);
 }
 
 .bp-topline {
@@ -290,67 +208,71 @@ textarea {
     align-items: baseline;
     flex-wrap: wrap;
     gap: 0.5rem;
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.9rem;
 }
 
 .bp-eyebrow {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     letter-spacing: 0.18em;
     color: var(--accent-amber);
 }
 
 .bp-route {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     font-weight: 600;
     color: var(--accent-cyan);
 }
 
 .bp-divider {
     border-top: 1px dashed rgba(139, 148, 172, 0.4);
-    margin: 0.6rem 0 1rem 0;
+    margin: 0.8rem 0 1.2rem 0;
 }
 
 .bp-content {
     color: var(--text-primary);
-    line-height: 1.55;
+    line-height: 1.65;
 }
 
 .bp-content strong {
     color: var(--accent-cyan);
 }
 
-.log-item {
-    border-left: 2px solid var(--accent-cyan);
-    padding: 0.35rem 0 0.35rem 0.7rem;
-    margin-bottom: 0.4rem;
+/* Sidebar Styling & Trip Cards */
+[data-testid="stSidebar"] {
+    background: linear-gradient(
+        180deg,
+        #0d1424,
+        #0a0e17
+    ) !important;
+    border-right: 1px solid var(--border-glow);
 }
 
-.log-item .log-route {
-    color: var(--accent-cyan);
-    font-weight: 600;
+.trip-log-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(34, 211, 238, 0.2);
+    border-radius: 10px;
+    padding: 0.8rem;
+    margin-bottom: 0.8rem;
+    transition: all 0.2s ease;
 }
 
-.log-item .log-meta {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.72rem;
-    color: var(--text-muted);
+.trip-log-card:hover {
+    border-color: var(--accent-cyan);
+    background: rgba(34, 211, 238, 0.05);
 }
 
 .lang-badge {
     display: inline-block;
-
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.72rem;
-
+    font-size: 0.75rem;
     color: var(--accent-violet);
-
     border: 1px solid var(--accent-violet);
     border-radius: 999px;
-
-    padding: 0.15rem 0.7rem;
-    margin-bottom: 0.6rem;
+    padding: 0.2rem 0.8rem;
+    margin-bottom: 0.8rem;
+    background: rgba(167, 139, 250, 0.08);
 }
 </style>
 """
