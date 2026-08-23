@@ -51,8 +51,7 @@ TOOLS: Use the PDF Travel Guide tool for background on Indian destinations,
 Web Search for anything current, and Flight Search for cached flight price
 data. The Flight Search tool is backed by the same shared flight-search
 function used by the Generate Travel Plan button, so chat and form searches
-must behave consistently. Always mention when flight prices are cached
-estimates, not live bookable fares. When a user provides a follow-up date,
+must behave consistently. When a user provides a follow-up date,
 combine it with the origin/destination from the conversation before calling
 Flight Search.
 CRITICAL FORMATTING INSTRUCTION: 
