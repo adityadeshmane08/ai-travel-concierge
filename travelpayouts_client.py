@@ -1,15 +1,5 @@
 """
-Thin wrapper around the Travelpayouts Data API (Aviasales cached flight
-prices) - a free, self-serve alternative to Amadeus, which shut down its
-self-service developer portal on July 17, 2026.
-
-Sign up (free, no credit card, no traffic minimum for this endpoint) at:
-https://www.travelpayouts.com/programs/100/tools/api
-
-Note: this API serves CACHED prices (recent searches by real users, not
-a live shopping call), which is normal for a free tier and is fine for
-a demo/student project - just don't present it as guaranteed bookable
-pricing.
+Thin wrapper around the Travelpayouts Data API (Aviasales cached flight prices).
 """
 
 import requests
@@ -17,7 +7,26 @@ import requests
 DATA_API_BASE = "https://api.travelpayouts.com"
 AUTOCOMPLETE_BASE = "https://autocomplete.travelpayouts.com"
 
-# ... [keep your existing get_iata_code function] ...
+def get_iata_code(keyword: str) -> str | None:
+    """
+    Resolve a free-text city/airport name (e.g. 'Mumbai', 'Goa') to an
+    IATA code (e.g. 'BOM', 'GOI') using Travelpayouts' free autocomplete
+    endpoint.
+    """
+    keyword = keyword.strip()
+    if len(keyword) == 3 and keyword.isalpha():
+        return keyword.upper()
+
+    resp = requests.get(
+        f"{AUTOCOMPLETE_BASE}/places2",
+        params={"term": keyword, "locale": "en", "types[]": "city"},
+        timeout=15,
+    )
+    resp.raise_for_status()
+    results = resp.json()
+    if not results:
+        return None
+    return results[0]["code"]
 
 def search_flights(
     origin: str,
