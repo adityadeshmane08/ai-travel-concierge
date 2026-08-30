@@ -19,11 +19,6 @@ def create_agent(retriever):
     flight_tool = create_flight_tool(token=st.secrets["TRAVELPAYOUTS_TOKEN"])
     weather_tool = create_weather_tool()
 
-    # Give the agent a sense of "today" so it can resolve relative dates
-    # like "this month" / "next week" into the YYYY-MM or YYYY-MM-DD
-    # format the Flight Search tool actually needs. Without this the
-    # agent has no way to know what "this month" means and can loop
-    # indefinitely trying to figure it out.
     today = date.today().isoformat()
 
     system_prefix = f"""You are Concierge, an expert AI travel assistant for
@@ -62,10 +57,6 @@ CRITICAL FORMATTING INSTRUCTION:
 When providing your action, you must output raw JSON only. Do NOT wrap your JSON response in ```json ... ``` markdown formatting blocks. For simple conversational questions that don't need a tool (e.g. "what's the best place to visit in Pune", general recommendations, opinions), you may still use the PDF Travel Guide or Web Search tool to ground your answer, but always finish with a single clean Final Answer - never leave your reasoning half-written or stop mid-thought.
 """
 
-    # STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION (rather than the plain
-    # ZERO_SHOT_REACT_DESCRIPTION agent) is required here because the
-    # Flight Search tool takes multiple named arguments (origin,
-    # destination, departure_date) instead of a single string.
     agent = initialize_agent(
         tools=[pdf_tool, web_tool, flight_tool, weather_tool],
         llm=llm,
@@ -73,10 +64,6 @@ When providing your action, you must output raw JSON only. Do NOT wrap your JSON
         verbose=True,
         handle_parsing_errors=True,
         agent_kwargs={"prefix": system_prefix},
-        # Safety net: if the agent can't converge on a clean "Final
-        # Answer" within max_iterations, force it to generate its best
-        # answer from whatever it has so far, instead of silently
-        # returning an empty string.
         max_iterations=10,
         early_stopping_method="generate",
     )
@@ -88,11 +75,10 @@ def create_fallback_llm():
     """
     A plain (no tools, no structured-output format) LLM used only as a
     last resort when the main agent's structured JSON output fails to
-    parse (this happens occasionally with Groq's hosted models on
-    conversational questions like "best place in Pune?"). Talking to
-    the model directly, without forcing the ReAct/JSON action format,
-    almost always produces a clean answer even when the agent path
-    fails, so the user gets a real answer instead of a raw error.
+    parse. Talking to the model directly, without forcing the ReAct/JSON
+    action format, almost always produces a clean answer even when the
+    agent path fails, so the user gets a real answer instead of a raw
+    error.
     """
     return ChatGroq(
         model="openai/gpt-oss-20b",
