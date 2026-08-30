@@ -59,7 +59,7 @@ origin/destination from the conversation before calling Flight Search.
 Always prefer the Weather Forecast tool over Web Search for weather
 questions - it returns real structured data instead of a guess.
 CRITICAL FORMATTING INSTRUCTION: 
-When providing your action, you must output raw JSON only. Do NOT wrap your JSON response in ```json ... ``` markdown formatting blocks.
+When providing your action, you must output raw JSON only. Do NOT wrap your JSON response in ```json ... ``` markdown formatting blocks. For simple conversational questions that don't need a tool (e.g. "what's the best place to visit in Pune", general recommendations, opinions), you may still use the PDF Travel Guide or Web Search tool to ground your answer, but always finish with a single clean Final Answer - never leave your reasoning half-written or stop mid-thought.
 """
 
     # STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION (rather than the plain
@@ -82,3 +82,19 @@ When providing your action, you must output raw JSON only. Do NOT wrap your JSON
     )
 
     return agent
+
+
+def create_fallback_llm():
+    """
+    A plain (no tools, no structured-output format) LLM used only as a
+    last resort when the main agent's structured JSON output fails to
+    parse (this happens occasionally with Groq's hosted models on
+    conversational questions like "best place in Pune?"). Talking to
+    the model directly, without forcing the ReAct/JSON action format,
+    almost always produces a clean answer even when the agent path
+    fails, so the user gets a real answer instead of a raw error.
+    """
+    return ChatGroq(
+        model="openai/gpt-oss-20b",
+        api_key=st.secrets["GROQ_API_KEY"],
+    )

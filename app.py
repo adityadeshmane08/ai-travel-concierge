@@ -8,7 +8,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-from agent import create_agent
+from agent import create_agent, create_fallback_llm
 from tools import search_flight_data, format_flight_results
 import weather_client
 import db
@@ -426,6 +426,14 @@ def get_agent():
 
 
 agent = get_agent()
+
+
+@st.cache_resource
+def get_fallback_llm():
+    return create_fallback_llm()
+
+
+fallback_llm = get_fallback_llm()
 
 
 # ============================================================
@@ -866,11 +874,40 @@ def run_agent(
 
     except Exception as exc:
 
-        answer = f"Something went wrong: {exc}"
+        # The main agent enforces a strict JSON action format, which
+        # Groq's hosted model occasionally fails to produce cleanly for
+        # simple conversational questions (e.g. "best place in Pune?").
+        # Rather than showing the user a raw API error, fall back to a
+        # plain LLM call with no format constraints - it almost always
+        # answers the actual travel question correctly.
+        try:
+            fallback_prompt = (
+                "You are a friendly, knowledgeable AI travel assistant "
+                "for India. Answer the user's question directly and "
+                "conversationally, in the same language and script they "
+                "used. If they're asking for a recommendation (best "
+                "place to visit, what to see, etc.), give a specific, "
+                "confident suggestion with a one-line reason - don't "
+                "hedge or ask for tools. Never mention errors, JSON, "
+                "or that something went wrong.\n\n"
+                f"User: {prompt_text}"
+            )
 
-        response = {
-            "output": answer
-        }
+            fallback_result = fallback_llm.invoke(fallback_prompt)
+            answer = (fallback_result.content or "").strip()
+
+            if not answer:
+                raise ValueError("empty fallback response")
+
+            response = {"output": answer, "fallback_used": True}
+
+        except Exception:
+            answer = (
+                "I couldn't quite work that out. Could you ask again - "
+                "for example, a destination, a flight route, or "
+                "something about the weather where you're headed?"
+            )
+            response = {"output": answer}
 
     return answer, response
 
@@ -1032,11 +1069,12 @@ with col1:
 
     origin = st.text_input(
         "🛫 Departure City",
-        value="Mumbai",
+        placeholder="e.g. Mumbai",
     )
 
     destination = st.text_input(
         "📍 Destination",
+        placeholder="e.g. Goa",
     )
 
     start_date = st.date_input(
@@ -1426,7 +1464,8 @@ for msg in st.session_state.chat_history:
 # ------------------------------------------------------------
 
 user_msg = st.chat_input(
-    "Ask anything - kisi bhi bhasha mein poochh sakte hain..."
+    "Ask anything about travel in India — weather, flight rates, "
+    "best places to visit... (kisi bhi bhasha mein poochh sakte hain)"
 )
 
 
