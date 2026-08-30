@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from tavily import TavilyClient
 
 import travelpayouts_client
+import weather_client
 
 # PDF Tool
 def create_pdf_tool(retriever):
@@ -69,6 +70,27 @@ def format_flight_results(offers: list[dict]) -> str:
         )
 
     return "\n".join(lines)
+
+def create_weather_tool():
+    def _weather(place: str) -> str:
+        try:
+            forecast = weather_client.get_forecast(place)
+        except Exception as exc:
+            return f"Weather lookup failed: {exc}"
+        return weather_client.format_forecast_text(forecast)
+
+    return Tool(
+        name="Weather Forecast",
+        description=(
+            "Use this tool to get real current conditions and a short "
+            "daily forecast for a specific city. Always call this when "
+            "the user asks about weather, or when planning an itinerary "
+            "where weather affects the recommendation (e.g. beach trip, "
+            "trekking, monsoon season)."
+        ),
+        func=_weather,
+    )
+
 
 def create_flight_tool(token: str):
     def _search(origin: str, destination: str, departure_date: str) -> str:

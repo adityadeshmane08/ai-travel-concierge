@@ -1,16 +1,22 @@
 # AI Travel Concierge
 
 An AI-powered travel assistant for planning trips in India. Combines a
-RAG chatbot over an India travel guide, live web search, and cached
-flight price data into a single LangChain agent, wrapped in a Streamlit UI.
+RAG chatbot over an India travel guide, live web search, real weather
+forecasts, and cached flight price data into a single LangChain agent,
+wrapped in a Streamlit UI with a light, booking-site-style design.
 
 ## Features
 
-- 🤖 Agent with 3 tools: PDF Travel Guide (RAG), Web Search (Tavily),
-  Flight Search (Travelpayouts)
-- 🧳 Trip-planning form that generates a real day-by-day itinerary
-- 💾 SQLite storage of past searches, browsable in the sidebar
-- 💬 Free-form chat for ad-hoc travel questions
+- 🤖 Agent with 4 tools: PDF Travel Guide (RAG), Web Search (Tavily),
+  Weather Forecast (Open-Meteo, no key required), Flight Search
+  (Travelpayouts)
+- 🧳 Trip-planning form that generates a real day-by-day itinerary,
+  factoring in live weather at the destination
+- ⬇️ Export any itinerary as a downloadable `.txt` file
+- 💾 SQLite storage of past searches, browsable in the sidebar ("My Trips")
+- 💬 Free-form chat for ad-hoc travel questions, in English, Hindi, or
+  Hinglish
+- ✅ Basic input validation on the trip form (dates, budget)
 
 ## Setup
 
@@ -49,12 +55,18 @@ flight price data into a single LangChain agent, wrapped in a Streamlit UI.
 ## Project structure
 
 - `app.py` — Streamlit UI: trip form, saved-trips sidebar, chat box
-- `agent.py` — builds the LangChain structured-chat agent with all 3 tools
-- `tools.py` — tool definitions (PDF retrieval, web search, flight search)
+- `agent.py` — builds the LangChain structured-chat agent with all 4 tools
+- `tools.py` — tool definitions (PDF retrieval, web search, weather,
+  flight search)
 - `travelpayouts_client.py` — Travelpayouts city lookup + cached flight
   price search
+- `weather_client.py` — Open-Meteo geocoding + forecast wrapper (free,
+  no API key needed)
 - `db.py` — SQLite persistence for saved trip searches
 - `Travel-guide-for-India.pdf` — source document for the RAG tool
+
+No new secret is needed for weather — Open-Meteo's API is free and
+keyless, so it works out of the box on a fresh deploy.
 
 ## Flight-search architecture
 

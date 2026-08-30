@@ -10,6 +10,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from agent import create_agent
 from tools import search_flight_data, format_flight_results
+import weather_client
 import db
 
 
@@ -29,110 +30,168 @@ st.set_page_config(
 
 THEME_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-    --bg-void: #0a0e17;
-    --bg-panel: rgba(19, 27, 46, 0.65);
-    --bg-panel-solid: #131b2e;
-    --border-glow: rgba(34, 211, 238, 0.35);
-    --border-glow-hover: rgba(167, 139, 250, 0.6);
-    --accent-cyan: #22d3ee;
-    --accent-violet: #a78bfa;
-    --accent-amber: #fbbf24;
-    --text-primary: #e7ecf7;
-    --text-muted: #8993ac;
-    --success: #34d399;
+    --bg-page: #f5f7fb;
+    --bg-card: #ffffff;
+    --border-soft: #e6e9f2;
+    --border-hover: #c7d0e8;
+    --primary: #0d6efd;
+    --primary-dark: #0b57d0;
+    --accent: #ff6b35;
+    --accent-dark: #e5572a;
+    --success: #1aa260;
+    --text-primary: #101828;
+    --text-muted: #667085;
+    --shadow-card: 0 2px 10px rgba(16, 24, 40, 0.06);
+    --shadow-card-hover: 0 8px 24px rgba(16, 24, 40, 0.10);
 }
 
 html, body, .stApp {
-    background:
-        radial-gradient(
-            ellipse 80% 50% at 20% -10%,
-            rgba(34,211,238,0.12),
-            transparent
-        ),
-        radial-gradient(
-            ellipse 60% 40% at 90% 10%,
-            rgba(167,139,250,0.12),
-            transparent
-        ),
-        var(--bg-void) !important;
-
+    background: var(--bg-page) !important;
     color: var(--text-primary);
     font-family: 'Inter', sans-serif;
 }
 
 h1, h2, h3 {
-    font-family: 'Space Grotesk', sans-serif !important;
+    font-family: 'Poppins', sans-serif !important;
     letter-spacing: -0.01em;
+    color: var(--text-primary);
 }
 
 .eyebrow {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
-    letter-spacing: 0.18em;
-    color: var(--accent-cyan);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--primary);
     text-transform: uppercase;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.5rem;
     display: block;
 }
 
 .hero-title {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-weight: 700;
-    font-size: 2.8rem;
-    line-height: 1.1;
-    background: linear-gradient(
-        90deg,
-        #ffffff 0%,
-        var(--accent-cyan) 55%,
-        var(--accent-violet) 100%
-    );
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    margin-bottom: 0.4rem;
+    font-size: 2.6rem;
+    line-height: 1.15;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.hero-title .accent-word {
+    color: var(--primary);
 }
 
 .hero-sub {
     color: var(--text-muted);
-    font-size: 1.05rem;
+    font-size: 1.08rem;
     max-width: 680px;
-    line-height: 1.6;
+    line-height: 1.65;
+    margin-bottom: 0.6rem;
 }
 
 .hud-line {
     height: 1px;
-    margin: 1.6rem 0 1.8rem 0;
-    background: linear-gradient(
-        90deg,
-        var(--accent-cyan),
-        transparent 70%
-    );
-    opacity: 0.6;
+    margin: 1.8rem 0;
+    background: var(--border-soft);
 }
 
-/* Sleek Buttons with Smooth Hover Animation */
+/* Trust badge row */
+.trust-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin: 1rem 0 0.4rem 0;
+}
+
+.trust-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #eef4ff;
+    color: var(--primary-dark);
+    border: 1px solid #d6e4ff;
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* Feature / How-it-works grid */
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1rem;
+    margin: 0.8rem 0 1.6rem 0;
+}
+
+.feature-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-soft);
+    border-radius: 14px;
+    padding: 1.2rem 1.3rem;
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.feature-card:hover {
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
+}
+
+.feature-icon {
+    font-size: 1.6rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.feature-title {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.3rem;
+    color: var(--text-primary);
+}
+
+.feature-desc {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+/* Sleek Buttons */
 .stButton > button {
-    background: linear-gradient(
-        90deg,
-        var(--accent-cyan),
-        var(--accent-violet)
-    );
-    color: #08101f;
+    background: var(--accent);
+    color: #ffffff;
     font-weight: 600;
     border: none;
-    border-radius: 12px;
+    border-radius: 10px;
     padding: 0.65rem 1.2rem;
-    box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
-    transition: all 0.25s ease;
+    box-shadow: 0 4px 14px rgba(255, 107, 53, 0.28);
+    transition: all 0.2s ease;
 }
 
 .stButton > button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 30px rgba(167, 139, 250, 0.6);
-    color: #08101f;
+    background: var(--accent-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(255, 107, 53, 0.35);
+    color: #ffffff;
+}
+
+[data-testid="stDownloadButton"] > button {
+    background: #ffffff;
+    color: var(--primary);
+    border: 1.5px solid var(--primary);
+    font-weight: 600;
+    border-radius: 10px;
+    box-shadow: none;
+}
+
+[data-testid="stDownloadButton"] > button:hover {
+    background: #eef4ff;
+    color: var(--primary-dark);
+    transform: none;
 }
 
 /* Inputs & Form Elements */
@@ -141,9 +200,9 @@ h1, h2, h3 {
 [data-testid="stDateInput"] input,
 [data-testid="stChatInput"] textarea,
 textarea {
-    background: var(--bg-panel-solid) !important;
+    background: #ffffff !important;
     color: var(--text-primary) !important;
-    border: 1px solid var(--border-glow) !important;
+    border: 1.5px solid var(--border-soft) !important;
     border-radius: 10px !important;
     transition: border-color 0.2s ease;
 }
@@ -151,54 +210,44 @@ textarea {
 [data-testid="stTextInput"] input:focus,
 [data-testid="stNumberInput"] input:focus,
 [data-testid="stDateInput"] input:focus {
-    border-color: var(--accent-cyan) !important;
-    box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12);
 }
 
 [data-testid="stSelectbox"] div[data-baseweb="select"] > div,
 [data-testid="stMultiSelect"] div[data-baseweb="select"] > div {
-    background: var(--bg-panel-solid) !important;
-    border: 1px solid var(--border-glow) !important;
+    background: #ffffff !important;
+    border: 1.5px solid var(--border-soft) !important;
     border-radius: 10px !important;
 }
 
 [data-baseweb="tag"] {
-    background: rgba(34, 211, 238, 0.18) !important;
-    border: 1px solid var(--accent-cyan) !important;
+    background: #eef4ff !important;
+    border: 1px solid var(--primary) !important;
+    color: var(--primary-dark) !important;
     border-radius: 6px !important;
 }
 
-/* Glass Panels with Hover Glow */
+/* Booking-style search panel */
 .glass-panel {
-    background: var(--bg-panel);
-    border: 1px solid var(--border-glow);
-    border-radius: 18px;
-    padding: 1.6rem 1.8rem 1rem 1.8rem;
-    backdrop-filter: blur(12px);
+    background: var(--bg-card);
+    border: 1px solid var(--border-soft);
+    border-radius: 16px;
+    padding: 1.6rem 1.8rem 1.2rem 1.8rem;
     margin-bottom: 1.4rem;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-    transition: border-color 0.3s ease;
+    box-shadow: var(--shadow-card);
 }
 
-.glass-panel:hover {
-    border-color: var(--border-glow-hover);
-}
-
-/* Boarding-Pass Itinerary Card */
+/* Itinerary result card */
 .boarding-pass {
     position: relative;
-    background: linear-gradient(
-        160deg,
-        rgba(19,27,46,0.92),
-        rgba(10,14,23,0.95)
-    );
-    border: 1px solid var(--accent-cyan);
-    border-radius: 18px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-soft);
+    border-left: 5px solid var(--primary);
+    border-radius: 16px;
     padding: 1.8rem 2rem;
     margin: 1.2rem 0 1.6rem 0;
-    box-shadow:
-        0 0 35px rgba(34, 211, 238, 0.2),
-        inset 0 0 45px rgba(167,139,250,0.06);
+    box-shadow: var(--shadow-card-hover);
     overflow: hidden;
 }
 
@@ -212,46 +261,102 @@ textarea {
 }
 
 .bp-eyebrow {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Inter', sans-serif;
     font-size: 0.75rem;
-    letter-spacing: 0.18em;
-    color: var(--accent-amber);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    text-transform: uppercase;
 }
 
 .bp-route {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: var(--accent-cyan);
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary);
 }
 
 .bp-divider {
-    border-top: 1px dashed rgba(139, 148, 172, 0.4);
+    border-top: 1px dashed var(--border-soft);
     margin: 0.8rem 0 1.2rem 0;
 }
 
 .bp-content {
     color: var(--text-primary);
-    line-height: 1.65;
+    line-height: 1.7;
 }
 
 .bp-content strong {
-    color: var(--accent-cyan);
+    color: var(--primary-dark);
 }
 
-/* Sidebar Styling & Trip Cards */
+/* Weather card */
+.weather-card {
+    background: linear-gradient(135deg, #eaf2ff 0%, #f5f9ff 100%);
+    border: 1px solid #d6e4ff;
+    border-radius: 16px;
+    padding: 1.3rem 1.6rem;
+    margin: 0 0 1.4rem 0;
+}
+
+.weather-current {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.9rem;
+}
+
+.weather-current .icon {
+    font-size: 2.4rem;
+}
+
+.weather-current .temp {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.weather-current .desc {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.weather-days {
+    display: flex;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+}
+
+.weather-day {
+    background: #ffffff;
+    border: 1px solid #e2ecff;
+    border-radius: 10px;
+    padding: 0.55rem 0.8rem;
+    text-align: center;
+    min-width: 78px;
+    font-size: 0.82rem;
+}
+
+.weather-day .d-icon {
+    font-size: 1.2rem;
+    display: block;
+}
+
+.weather-day .d-temp {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* Sidebar */
 [data-testid="stSidebar"] {
-    background: linear-gradient(
-        180deg,
-        #0d1424,
-        #0a0e17
-    ) !important;
-    border-right: 1px solid var(--border-glow);
+    background: #ffffff !important;
+    border-right: 1px solid var(--border-soft);
 }
 
 .trip-log-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(34, 211, 238, 0.2);
+    background: #f8faff;
+    border: 1px solid var(--border-soft);
     border-radius: 10px;
     padding: 0.8rem;
     margin-bottom: 0.8rem;
@@ -259,20 +364,28 @@ textarea {
 }
 
 .trip-log-card:hover {
-    border-color: var(--accent-cyan);
-    background: rgba(34, 211, 238, 0.05);
+    border-color: var(--primary);
+    background: #eef4ff;
 }
 
 .lang-badge {
     display: inline-block;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
-    color: var(--accent-violet);
-    border: 1px solid var(--accent-violet);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--primary-dark);
+    border: 1px solid #d6e4ff;
     border-radius: 999px;
-    padding: 0.2rem 0.8rem;
-    margin-bottom: 0.8rem;
-    background: rgba(167, 139, 250, 0.08);
+    padding: 0.25rem 0.85rem;
+    margin-bottom: 0.9rem;
+    background: #eef4ff;
+}
+
+.site-footer {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 1rem 0 0.4rem 0;
 }
 </style>
 """
@@ -767,26 +880,75 @@ def run_agent(
 # ============================================================
 
 st.markdown(
-    '<span class="eyebrow">TEAM ELEVATEX // MISSION CONTROL</span>',
+    '<span class="eyebrow">AI-Powered Trip Planning</span>',
     unsafe_allow_html=True,
 )
 
 st.markdown(
-    '<div class="hero-title">AI Travel Concierge</div>',
+    '<div class="hero-title">Plan your next trip with your '
+    '<span class="accent-word">AI Travel Concierge</span></div>',
     unsafe_allow_html=True,
 )
 
 st.markdown(
     '<div class="hero-sub">'
-    'Plan trips across India with an agent that pulls live web '
-    'context, cached flight prices, and a curated travel guide - '
-    'and talks back in whatever language you use.'
+    'Tell us where you want to go and we\'ll pull live flight prices, '
+    'real weather forecasts, and a curated India travel guide into one '
+    'day-by-day itinerary - built by an agent that talks back in '
+    'whatever language you write in.'
     '</div>',
     unsafe_allow_html=True,
 )
 
 st.markdown(
+    """
+<div class="trust-row">
+    <span class="trust-badge">✅ Live cached flight prices</span>
+    <span class="trust-badge">🌦️ Real-time weather data</span>
+    <span class="trust-badge">📚 Curated India travel guide</span>
+    <span class="trust-badge">🔒 Your searches, saved privately</span>
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
+st.markdown(
     '<div class="hud-line"></div>',
+    unsafe_allow_html=True,
+)
+
+# ============================================================
+# HOW IT WORKS
+# ============================================================
+
+st.markdown(
+    '<span class="eyebrow">How It Works</span>',
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+<div class="feature-grid">
+    <div class="feature-card">
+        <span class="feature-icon">📝</span>
+        <div class="feature-title">1. Tell us your trip</div>
+        <div class="feature-desc">Departure city, destination, dates,
+        budget, and the kind of trip you're after.</div>
+    </div>
+    <div class="feature-card">
+        <span class="feature-icon">🤖</span>
+        <div class="feature-title">2. AI does the research</div>
+        <div class="feature-desc">Flight prices, live weather, and
+        destination knowledge are pulled together automatically.</div>
+    </div>
+    <div class="feature-card">
+        <span class="feature-icon">🗓️</span>
+        <div class="feature-title">3. Get a real itinerary</div>
+        <div class="feature-desc">A day-by-day plan that fits your
+        budget - save it, export it, or keep chatting to refine it.</div>
+    </div>
+</div>
+""",
     unsafe_allow_html=True,
 )
 
@@ -802,7 +964,7 @@ st.markdown(
 with st.sidebar:
 
     st.markdown(
-        '<span class="eyebrow">🛰️ Flight Log</span>',
+        '<span class="eyebrow">🧳 My Trips</span>',
         unsafe_allow_html=True,
     )
 
@@ -811,7 +973,7 @@ with st.sidebar:
     if not saved:
 
         st.caption(
-            "No saved trips yet. Generate a plan to log it here."
+            "No saved trips yet. Generate a plan to save it here."
         )
 
     for row in saved:
@@ -819,7 +981,7 @@ with st.sidebar:
         # Clean, human-readable card layout without raw HTML exposure
         with st.container():
             st.markdown(f"**{row['origin']} ➔ {row['destination']}**")
-            
+
             # Display readable metadata
             st.caption(
                 f"📅 {row['start_date']} | "
@@ -827,8 +989,17 @@ with st.sidebar:
                 f"💰 ₹{row['budget']}"
             )
 
-        with st.expander("View manifest details"):
+        with st.expander("View trip details"):
             st.write(row["itinerary"])
+
+            st.download_button(
+                "⬇️ Download itinerary",
+                data=row["itinerary"],
+                file_name=f"{row['origin']}_to_{row['destination']}_itinerary.txt",
+                mime="text/plain",
+                key=f"dl_{row['id']}",
+                use_container_width=True,
+            )
 
             if st.button(
                 "Delete entry",
@@ -836,7 +1007,7 @@ with st.sidebar:
             ):
                 db.delete_search(row["id"])
                 st.rerun()
-        
+
         st.markdown("---")
 
 
@@ -850,7 +1021,7 @@ st.markdown(
 )
 
 st.markdown(
-    '<span class="eyebrow">Mission Parameters</span>',
+    '<span class="eyebrow">Plan Your Trip</span>',
     unsafe_allow_html=True,
 )
 
@@ -946,10 +1117,43 @@ if generate_clicked:
             "Please enter a destination first."
         )
 
+    elif not origin:
+
+        st.warning(
+            "Please enter a departure city first."
+        )
+
+    elif end_date < start_date:
+
+        st.warning(
+            "End date can't be before the start date - "
+            "please double-check your travel dates."
+        )
+
+    elif budget < 1000:
+
+        st.warning(
+            "That budget looks too low to plan a trip around - "
+            "try increasing it a bit."
+        )
+
     else:
 
         flight_error = None
         flight_offers = []
+
+        # ----------------------------------------------------
+        # Real weather forecast for the destination
+        # ----------------------------------------------------
+
+        try:
+            weather_forecast = weather_client.get_forecast(destination)
+        except Exception:
+            weather_forecast = None
+
+        weather_context = weather_client.format_forecast_text(
+            weather_forecast
+        )
 
         # ----------------------------------------------------
         # SAME SHARED FLIGHT SEARCH FUNCTION
@@ -1004,13 +1208,19 @@ If the result says there is no cached data, say so clearly.
 
 {flight_context}
 
+REAL WEATHER DATA for {destination} (already fetched - do not call the
+Weather Forecast tool again for this request, do not invent conditions):
+
+{weather_context}
+
 Use the PDF Travel Guide tool for background on {destination} in India.
 
-Use the Web Search tool for anything current such as weather,
-events, or prices that is not covered by the PDF.
+Use the Web Search tool for anything current such as events or prices
+that is not covered by the PDF or the weather data above.
 
 Then produce a day-by-day itinerary that fits the budget and
-interests.
+interests, and factor the weather into your recommendations (e.g.
+suggest indoor alternatives on rainy days, pack accordingly).
 
 Mention the flight options found above.
 
@@ -1061,6 +1271,50 @@ Respond in English unless the destination or interests suggest otherwise.
             )
 
         # ----------------------------------------------------
+        # Weather card
+        # ----------------------------------------------------
+
+        if weather_forecast:
+
+            current = weather_forecast["current"]
+
+            days_html = "".join(
+                f'<div class="weather-day">'
+                f'<span class="d-icon">{d["icon"]}</span>'
+                f'{d["date"][5:]}<br>'
+                f'<span class="d-temp">{round(d["high"])}°</span>'
+                f'/{round(d["low"])}°'
+                f'</div>'
+                for d in weather_forecast["daily"]
+            )
+
+            st.markdown(
+                f"""
+<div class="weather-card">
+    <div class="weather-current">
+        <span class="icon">{current['icon']}</span>
+        <div>
+            <div class="temp">{round(current['temp'])}°C</div>
+            <div class="desc">{current['desc']} in
+            {weather_forecast['place']} · Humidity {current['humidity']}%
+            · Wind {round(current['wind'])} km/h</div>
+        </div>
+    </div>
+    <div class="weather-days">{days_html}</div>
+</div>
+""",
+                unsafe_allow_html=True,
+            )
+
+        else:
+
+            st.info(
+                f"Couldn't fetch a live weather forecast for "
+                f"{destination} - the itinerary will skip weather "
+                f"specifics."
+            )
+
+        # ----------------------------------------------------
         # Boarding pass
         # ----------------------------------------------------
 
@@ -1070,7 +1324,7 @@ Respond in English unless the destination or interests suggest otherwise.
             '<div class="bp-topline">'
 
             '<span class="bp-eyebrow">'
-            'TRIP MANIFEST'
+            'YOUR ITINERARY'
             '</span>'
 
             f'<span class="bp-route">'
@@ -1095,9 +1349,12 @@ Respond in English unless the destination or interests suggest otherwise.
             unsafe_allow_html=True,
         )
 
-        # ----------------------------------------------------
-        # Debug
-        # --------------------------------------------------
+        st.download_button(
+            "⬇️ Download this itinerary",
+            data=itinerary_text,
+            file_name=f"{origin}_to_{destination}_itinerary.txt",
+            mime="text/plain",
+        )
 
         # ----------------------------------------------------
         # Save search
@@ -1130,7 +1387,7 @@ st.markdown(
 )
 
 st.markdown(
-    '<span class="eyebrow">Live Channel</span>',
+    '<span class="eyebrow">Ask Anything</span>',
     unsafe_allow_html=True,
 )
 
@@ -1149,7 +1406,7 @@ st.markdown(
 for msg in st.session_state.chat_history:
 
     avatar = (
-        "🧑‍🚀"
+        "🧑"
         if msg["role"] == "user"
         else "🤖"
     )
@@ -1188,7 +1445,7 @@ if user_msg:
 
     with st.chat_message(
         "user",
-        avatar="🧑‍🚀",
+        avatar="🧑",
     ):
 
         st.markdown(user_msg)
@@ -1238,16 +1495,33 @@ st.markdown(
 
 st.markdown(
     """
-<span class="eyebrow">Upcoming Systems</span>
-
-- 🏨 Hotel recommendations
-- 🍽️ Restaurant suggestions
-- 🌤️ Weather forecasting
-- 🗺️ Maps & route planning
-
----
-
-Made with ❤️ by **Team ElevateX**
+<div class="feature-grid">
+    <div class="feature-card">
+        <span class="feature-icon">🔒</span>
+        <div class="feature-title">Your data stays yours</div>
+        <div class="feature-desc">Saved trips are stored locally to
+        this app - nothing is shared with third parties.</div>
+    </div>
+    <div class="feature-card">
+        <span class="feature-icon">💬</span>
+        <div class="feature-title">Multilingual by default</div>
+        <div class="feature-desc">Chat in English, Hindi, or Hinglish -
+        the assistant replies in kind.</div>
+    </div>
+    <div class="feature-card">
+        <span class="feature-icon">⚡</span>
+        <div class="feature-title">Always improving</div>
+        <div class="feature-desc">Hotel and restaurant recommendations
+        are on the roadmap next.</div>
+    </div>
+</div>
 """,
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    '<div class="site-footer">AI Travel Concierge · '
+    'Flight data is cached, not live-booked - confirm prices before '
+    'purchase.</div>',
     unsafe_allow_html=True,
 )

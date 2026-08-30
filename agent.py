@@ -5,7 +5,7 @@ from langchain.agents import initialize_agent, AgentType
 
 from langchain_groq import ChatGroq
 
-from tools import create_pdf_tool, create_web_tool, create_flight_tool
+from tools import create_pdf_tool, create_web_tool, create_flight_tool, create_weather_tool
 
 
 def create_agent(retriever):
@@ -17,6 +17,7 @@ def create_agent(retriever):
     pdf_tool = create_pdf_tool(retriever)
     web_tool = create_web_tool(st.secrets["TAVILY_API_KEY"])
     flight_tool = create_flight_tool(token=st.secrets["TRAVELPAYOUTS_TOKEN"])
+    weather_tool = create_weather_tool()
 
     # Give the agent a sense of "today" so it can resolve relative dates
     # like "this month" / "next week" into the YYYY-MM or YYYY-MM-DD
@@ -26,7 +27,7 @@ def create_agent(retriever):
     today = date.today().isoformat()
 
     system_prefix = f"""You are Concierge, an expert AI travel assistant for
-India, built by Team ElevateX. Today's date is {today}.
+India. Today's date is {today}.
 
 LANGUAGE: Always reply in the SAME language and script the user just wrote
 in. If they write in Hindi (Devanagari), reply in Hindi. If they write in
@@ -48,12 +49,15 @@ above the latest message, if present) to keep context across turns - e.g. if
 they already told you their destination, don't ask again.
 
 TOOLS: Use the PDF Travel Guide tool for background on Indian destinations,
-Web Search for anything current, and Flight Search for cached flight price
-data. The Flight Search tool is backed by the same shared flight-search
-function used by the Generate Travel Plan button, so chat and form searches
-must behave consistently. When a user provides a follow-up date,
-combine it with the origin/destination from the conversation before calling
-Flight Search.
+Web Search for anything current that isn't covered by a dedicated tool,
+Weather Forecast for real current conditions and short-term forecasts for a
+city, and Flight Search for cached flight price data. The Flight Search
+tool is backed by the same shared flight-search function used by the
+Generate Travel Plan button, so chat and form searches must behave
+consistently. When a user provides a follow-up date, combine it with the
+origin/destination from the conversation before calling Flight Search.
+Always prefer the Weather Forecast tool over Web Search for weather
+questions - it returns real structured data instead of a guess.
 CRITICAL FORMATTING INSTRUCTION: 
 When providing your action, you must output raw JSON only. Do NOT wrap your JSON response in ```json ... ``` markdown formatting blocks.
 """
@@ -63,7 +67,7 @@ When providing your action, you must output raw JSON only. Do NOT wrap your JSON
     # Flight Search tool takes multiple named arguments (origin,
     # destination, departure_date) instead of a single string.
     agent = initialize_agent(
-        tools=[pdf_tool, web_tool, flight_tool],
+        tools=[pdf_tool, web_tool, flight_tool, weather_tool],
         llm=llm,
         agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
         verbose=True,
